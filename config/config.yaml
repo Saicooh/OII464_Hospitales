@@ -1,0 +1,120 @@
+# ============================================================
+# EXPERIMENT SETTINGS (modify these frequently)
+# ============================================================
+
+analysis_mode:
+  enabled: true
+  num_runs: 1                          # 4 corridas (instancias) en total
+  sims_per_run: 1                    # 400 simulaciones por corrida (según indicación del usuario)
+  fixed_pool_per_run: true
+  checkpoint_interval_seconds: 300     # Standard checkpoint interval (300 seconds)
+  artifact_save_mode: all
+  export_csv_after_run: true
+  full_reports_enabled: true
+  sqlite_path: results/analysis.db
+  sweep_enabled: true                  # Habilitar sweep para variar la cantidad de cirugías por corrida
+  sweep_num_procedures:
+  - 15                                 # Corrida 1 (Pocas cirugías)
+  - 20                                 # Corrida 2 (Medias cirugías)
+  - 25                                 # Corrida 3 (Medias cirugías)
+  - 30                                 # Corrida 4 (Muchas cirugías)
+  sweep_sims_per_x: 1
+  temporal_enabled: true
+
+experiment:
+  num_procedures: 25
+  num_simulations: 50
+  alpha_test: 0.05
+  std_factor_times: 0.15
+  save_pdf: false
+  output_dirs:
+    csv: results/csv
+    plots: results/plots
+  n_jobs: -1                           # Número de workers en paralelo (-1 usa todos, -2 usa todos menos 1, o un número positivo para limitar)
+
+algorithms:
+  alpha: 1.0e-06
+  beta: 0.5
+  delta: 100.0
+  gamma: 1.4
+  ga:
+    enabled: true
+    max_generations: 1000              # Default iteration budget
+    population_size: 30                # Default population size
+    crossover_probability: 0.8
+    mutation_probability: 0.3
+    elitism_count: 2
+  dpso:
+    enabled: true
+    max_iterations: 1000               # Default iteration budget
+    swarm_size: 30                     # Default swarm size
+    w: 0.7
+    c1: 1.5
+    c2: 1.5
+    vel_low: -4.0
+    vel_high: 4.0
+  sboa:
+    enabled: true
+    max_iterations: 1000               # Default iteration budget
+    population_size: 30                # Default population size
+    lower_bound: -5.0
+    upper_bound: 5.0
+  dmshoa:
+    enabled: false                     # Desactivar dMShOA adaptado (era peor que el antiguo)
+    max_iterations: 1000               # Default iteration budget
+    population_size: 30                # Default population size
+    k: 0.3
+    lower_bound: -5.0
+    upper_bound: 5.0
+  dmshoa_old:
+    enabled: true                      # Activar dMShOA antiguo/legacy (versión preferida por el usuario)
+
+# ============================================================
+# INFRASTRUCTURE & DATA (rarely modified)
+# ============================================================
+
+logging:
+  verbose_mode: false
+
+real_data:
+  enabled: true
+  reset_trace_on_start: true
+  trace_csv_path: results/csv/raw_batch_trace.csv
+
+resources:
+  num_pabellones: 12
+
+personnel:
+  num_anesthesiologists: 11
+  num_surgeons: 29
+
+jobs:
+  types:
+    '1': 1
+    '2': 1
+    '3': 1
+    '4': 3
+    '5': 3
+    '6': 3
+    '7': 2
+    '8': 2
+    '9': 1
+    '10': 1
+    '11': 2
+    '12': 2
+    '13': 3
+    '14': 1
+    '15': 3
+
+times:
+  setup:
+    '1': 34.32
+    '2': 34.32
+    '3': 34.32
+  cleanup:
+    '1': 16.82
+    '2': 16.82
+    '3': 16.82
+  max_wait:
+    '1': 500
+    '2': 500

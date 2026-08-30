@@ -1,0 +1,2 @@
+total_registros_originales,excluidos_cie10_nulo,excluidos_tiempo_invalido,excluidos_anomalia_transicion,timing_quality_negative_values,timing_quality_zero_values,timing_quality_invalid_surgery_zero,timing_quality_extreme_outliers,validos_finales,n_codigos_validos,n_codigos_top20,n_codigos_otros,registros_top20,registros_otros,top20_fraccion,pkl_path
+28464,4567,0,32,0,72,0,1472,23865,1589,317,1272,20321,3544,0.2,E:\Hospitales\datasets\2_dataset_procesado_actualizado.pkl

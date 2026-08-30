@@ -1,0 +1,90 @@
+# Quick-run settings for smoke testing.
+# logging: Controls the level of detail in logs during simulations.
+
+logging:
+  # Quick run: verbose enabled for early visibility.
+  verbose_mode: true
+
+experiment:
+  num_simulations: 1
+  num_procedures: 15
+  std_factor_times: 0.0
+  alpha_test: 0.05
+  output_dirs:
+    plots: results/plots
+    csv: results/csv
+
+times:
+  # max_wait is used in both real-data and synthetic modes.
+  max_wait:
+    "1": 25
+    "2": 25
+    "3": 25
+  setup:
+    "1": 30
+    "2": 30
+    "3": 30
+  cleanup:
+    "1": 20
+    "2": 20
+    "3": 20
+
+jobs:
+  types:
+    "1": 1
+    "2": 1
+    "3": 1
+    "4": 3
+    "5": 3
+    "6": 3
+    "7": 2
+    "8": 2
+    "9": 1
+    "10": 1
+    "11": 2
+    "12": 2
+    "13": 3
+    "14": 1
+    "15": 3
+
+resources:
+  num_pabellones: 12
+
+personnel:
+  num_anesthesiologists: 6
+  num_surgeons: 6
+
+algorithms:
+  alpha: 1.0e-6
+  beta: 0.7
+  gamma: 1.4
+  delta: 100.0
+  ga:
+    enabled: true
+    population_size: 6
+    max_generations: 10
+    crossover_probability: 0.8
+    mutation_probability: 0.3
+    elitism_count: 1
+  dpso:
+    enabled: true
+    swarm_size: 6
+    max_iterations: 10
+    w: 0.7
+    c1: 1.5
+    c2: 1.5
+    vel_high: 4.0
+    vel_low: -4.0
+  sboa:
+    enabled: true
+    population_size: 6
+    max_iterations: 10
+    lower_bound: -5.0
+    upper_bound: 5.0
+  dmshoa:
+    enabled: true
+    population_size: 6
+    max_iterations: 10
+    k: 0.3
+    lower_bound: -5.0
+    upper_bound: 5.0

@@ -1,0 +1,332 @@
+{
+  "schema_version": 1,
+  "run_id": 4,
+  "num_jobs": 30,
+  "units": "minutes",
+  "generated_by": "reproducibility/instance_reconstruction.py",
+  "environment": {
+    "python": "3.13.7",
+    "numpy": "2.4.1",
+    "pandas": "2.3.3"
+  },
+  "source_db": "E:/Hospitales/results/20260705_213740/analysis.db",
+  "source_db_size_bytes": 11116539904,
+  "resources": {
+    "rooms": 12,
+    "anesthetists": 11,
+    "surgeons": 29
+  },
+  "jobs": [
+    {
+      "job_id": 1,
+      "transition_min": 42.8149,
+      "setup_min": 3.378,
+      "anesthesia_min": 1.0,
+      "surgery_min": 20.04999999999997,
+      "cleanup_min": 8.2051,
+      "chain_min": 72.06999999999996,
+      "min_op1_finish_min": 43.8149
+    },
+    {
+      "job_id": 2,
+      "transition_min": 1.0,
+      "setup_min": 16.8852,
+      "anesthesia_min": 73.8289,
+      "surgery_min": 69.90869999999998,
+      "cleanup_min": 3.3227,
+      "chain_min": 163.94549999999998,
+      "min_op1_finish_min": 90.7141
+    },
+    {
+      "job_id": 3,
+      "transition_min": 22.6813,
+      "setup_min": 11.2508,
+      "anesthesia_min": 11.4527,
+      "surgery_min": 38.156599999999955,
+      "cleanup_min": 30.3599,
+      "chain_min": 102.65049999999995,
+      "min_op1_finish_min": 34.134
+    },
+    {
+      "job_id": 4,
+      "transition_min": 37.2158,
+      "setup_min": 15.2994,
+      "anesthesia_min": 12.665099999999995,
+      "surgery_min": 18.274099999999976,
+      "cleanup_min": 12.0951,
+      "chain_min": 80.25009999999997,
+      "min_op1_finish_min": 49.8809
+    },
+    {
+      "job_id": 5,
+      "transition_min": 1.0,
+      "setup_min": 16.6772,
+      "anesthesia_min": 28.818800000000003,
+      "surgery_min": 63.06629999999998,
+      "cleanup_min": 8.8011,
+      "chain_min": 117.36339999999998,
+      "min_op1_finish_min": 45.496
+    },
+    {
+      "job_id": 6,
+      "transition_min": 26.3644,
+      "setup_min": 8.1651,
+      "anesthesia_min": 21.374,
+      "surgery_min": 32.465999999999944,
+      "cleanup_min": 35.8696,
+      "chain_min": 116.07399999999993,
+      "min_op1_finish_min": 47.7384
+    },
+    {
+      "job_id": 7,
+      "transition_min": 31.5993,
+      "setup_min": 12.7114,
+      "anesthesia_min": 53.753,
+      "surgery_min": 69.89659999999994,
+      "cleanup_min": 10.103,
+      "chain_min": 165.35189999999994,
+      "min_op1_finish_min": 85.3523
+    },
+    {
+      "job_id": 8,
+      "transition_min": 8.3479,
+      "setup_min": 3.7713,
+      "anesthesia_min": 13.376100000000001,
+      "surgery_min": 37.17929999999998,
+      "cleanup_min": 17.1453,
+      "chain_min": 76.04859999999996,
+      "min_op1_finish_min": 21.724
+    },
+    {
+      "job_id": 9,
+      "transition_min": 41.1833,
+      "setup_min": 15.0,
+      "anesthesia_min": 25.0,
+      "surgery_min": 54.99999999999994,
+      "cleanup_min": 18.1833,
+      "chain_min": 139.36659999999995,
+      "min_op1_finish_min": 66.1833
+    },
+    {
+      "job_id": 10,
+      "transition_min": 10.6334,
+      "setup_min": 4.4834,
+      "anesthesia_min": 1.6317000000000004,
+      "surgery_min": 37.071799999999975,
+      "cleanup_min": 9.7186,
+      "chain_min": 59.055499999999974,
+      "min_op1_finish_min": 12.2651
+    },
+    {
+      "job_id": 11,
+      "transition_min": 1.0,
+      "setup_min": 14.5377,
+      "anesthesia_min": 46.933299999999996,
+      "surgery_min": 214.7771,
+      "cleanup_min": 39.023,
+      "chain_min": 315.2711,
+      "min_op1_finish_min": 61.471
+    },
+    {
+      "job_id": 12,
+      "transition_min": 1.0,
+      "setup_min": 1.9531,
+      "anesthesia_min": 22.351100000000002,
+      "surgery_min": 28.264999999999937,
+      "cleanup_min": 35.8983,
+      "chain_min": 88.46749999999994,
+      "min_op1_finish_min": 24.3042
+    },
+    {
+      "job_id": 13,
+      "transition_min": 4.1667,
+      "setup_min": 5.0,
+      "anesthesia_min": 70.0,
+      "surgery_min": 144.99999999999994,
+      "cleanup_min": 15.6667,
+      "chain_min": 235.66669999999993,
+      "min_op1_finish_min": 75.0
+    },
+    {
+      "job_id": 14,
+      "transition_min": 1.0,
+      "setup_min": 1.0,
+      "anesthesia_min": 12.8022,
+      "surgery_min": 0.9999999999999787,
+      "cleanup_min": 25.4026,
+      "chain_min": 40.20479999999998,
+      "min_op1_finish_min": 13.8022
+    },
+    {
+      "job_id": 15,
+      "transition_min": 1.0,
+      "setup_min": 1.0,
+      "anesthesia_min": 61.9925,
+      "surgery_min": 337.70309999999995,
+      "cleanup_min": 1.0,
+      "chain_min": 401.69559999999996,
+      "min_op1_finish_min": 62.9925
+    },
+    {
+      "job_id": 16,
+      "transition_min": 40.7778,
+      "setup_min": 11.3208,
+      "anesthesia_min": 14.722099999999998,
+      "surgery_min": 41.999899999999926,
+      "cleanup_min": 13.2239,
+      "chain_min": 110.72369999999992,
+      "min_op1_finish_min": 55.4999
+    },
+    {
+      "job_id": 17,
+      "transition_min": 1.0,
+      "setup_min": 1.0,
+      "anesthesia_min": 1.0,
+      "surgery_min": 17.825699999999976,
+      "cleanup_min": 1.7806,
+      "chain_min": 21.606299999999976,
+      "min_op1_finish_min": 2.0
+    },
+    {
+      "job_id": 18,
+      "transition_min": 16.5667,
+      "setup_min": 15.0,
+      "anesthesia_min": 19.999999999999996,
+      "surgery_min": 64.99999999999997,
+      "cleanup_min": 11.0333,
+      "chain_min": 112.59999999999997,
+      "min_op1_finish_min": 36.5667
+    },
+    {
+      "job_id": 19,
+      "transition_min": 12.4147,
+      "setup_min": 11.3911,
+      "anesthesia_min": 21.166999999999998,
+      "surgery_min": 40.84999999999995,
+      "cleanup_min": 20.5526,
+      "chain_min": 94.98429999999995,
+      "min_op1_finish_min": 33.5817
+    },
+    {
+      "job_id": 20,
+      "transition_min": 12.3276,
+      "setup_min": 4.366,
+      "anesthesia_min": 16.2862,
+      "surgery_min": 23.50949999999996,
+      "cleanup_min": 10.9002,
+      "chain_min": 63.023499999999956,
+      "min_op1_finish_min": 28.6138
+    },
+    {
+      "job_id": 21,
+      "transition_min": 24.6,
+      "setup_min": 5.0,
+      "anesthesia_min": 25.0,
+      "surgery_min": 74.99999999999996,
+      "cleanup_min": 11.8667,
+      "chain_min": 136.46669999999997,
+      "min_op1_finish_min": 49.6
+    },
+    {
+      "job_id": 22,
+      "transition_min": 1.0,
+      "setup_min": 1.3276,
+      "anesthesia_min": 26.7211,
+      "surgery_min": 108.13719999999996,
+      "cleanup_min": 22.1701,
+      "chain_min": 158.35599999999997,
+      "min_op1_finish_min": 28.0487
+    },
+    {
+      "job_id": 23,
+      "transition_min": 1.0,
+      "setup_min": 25.6019,
+      "anesthesia_min": 9.327199999999998,
+      "surgery_min": 66.21189999999993,
+      "cleanup_min": 20.7406,
+      "chain_min": 121.88159999999993,
+      "min_op1_finish_min": 34.9291
+    },
+    {
+      "job_id": 24,
+      "transition_min": 58.728,
+      "setup_min": 17.6404,
+      "anesthesia_min": 19.216199999999994,
+      "surgery_min": 56.92799999999991,
+      "cleanup_min": 22.0463,
+      "chain_min": 156.9184999999999,
+      "min_op1_finish_min": 77.9442
+    },
+    {
+      "job_id": 25,
+      "transition_min": 27.3665,
+      "setup_min": 24.9268,
+      "anesthesia_min": 9.538599999999999,
+      "surgery_min": 119.72699999999996,
+      "cleanup_min": 16.2437,
+      "chain_min": 172.87579999999994,
+      "min_op1_finish_min": 36.9051
+    },
+    {
+      "job_id": 26,
+      "transition_min": 4.35,
+      "setup_min": 25.0,
+      "anesthesia_min": 35.0,
+      "surgery_min": 34.99999999999996,
+      "cleanup_min": 19.2,
+      "chain_min": 114.19999999999996,
+      "min_op1_finish_min": 60.0
+    },
+    {
+      "job_id": 27,
+      "transition_min": 23.5469,
+      "setup_min": 23.718,
+      "anesthesia_min": 51.00189999999999,
+      "surgery_min": 152.90989999999988,
+      "cleanup_min": 16.3598,
+      "chain_min": 243.98959999999988,
+      "min_op1_finish_min": 74.7199
+    },
+    {
+      "job_id": 28,
+      "transition_min": 1.0,
+      "setup_min": 13.0693,
+      "anesthesia_min": 32.218,
+      "surgery_min": 45.61429999999996,
+      "cleanup_min": 31.9325,
+      "chain_min": 122.83409999999996,
+      "min_op1_finish_min": 45.2873
+    },
+    {
+      "job_id": 29,
+      "transition_min": 1.4667,
+      "setup_min": 1.0,
+      "anesthesia_min": 39.0,
+      "surgery_min": 36.99999999999993,
+      "cleanup_min": 11.2333,
+      "chain_min": 88.69999999999993,
+      "min_op1_finish_min": 40.4667
+    },
+    {
+      "job_id": 30,
+      "transition_min": 2.366,
+      "setup_min": 5.0071,
+      "anesthesia_min": 1.9752,
+      "surgery_min": 11.897399999999948,
+      "cleanup_min": 1.0,
+      "chain_min": 19.87969999999995,
+      "min_op1_finish_min": 6.9823
+    }
+  ],
+  "bounds": {
+    "lb_cp": 401.69559999999996,
+    "lb_room": 326.0434666666666,
+    "lb_surgeon": 71.22156551724133,
+    "lb_anesthetist": 70.8320818181818,
+    "lb": 401.69559999999996,
+    "binding": "critical-path"
+  },
+  "best_makespan_min": 425.1798,
+  "gap_pct": 5.846267671341196,
+  "content_sha256": "76a60d5e42f13a0c01ad1174c667a0e2730be9e10ad09b6ff03c5028b80aab5e"
+}
