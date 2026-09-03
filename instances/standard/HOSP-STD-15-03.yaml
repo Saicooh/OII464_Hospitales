@@ -1,0 +1,39 @@
+schema_version: 1
+instance_id: HOSP-STD-15-03
+family: standard
+classification: fully synthetic instance
+provenance: {kind: public synthetic, source: course-designed standard profile}
+generation:
+  method: fixed Gaussian-copula materialization
+  version: standard-copula-v1
+  seed: 1503
+  profile:
+    duration_distributions: versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup
+    dependence: Gaussian copula with fixed rank-correlation matrix
+    assignment: seeded qualified-person subsets
+    room_eligibility: all declared rooms
+    congestion_bands: mixed case load with wider wait limits
+    replica_policy: three independent minimum instances; pilot CI governs pair expansion
+dimensions: {jobs: 15, operations_per_job: 2}
+resources:
+  rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6]
+  personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10]}
+jobs:
+  - {id: 1, label: Standard case 1, operations: [{id: 1, duration: 7.5, setup: 1.0, transition: 1.5, cleanup: 0.5, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-1, AN-3, AN-2]}, {id: 2, duration: 18.0, setup: 0.0, transition: 0.0, cleanup: 2.0, max_wait: 40.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-1, SU-3, SU-2]}]}
+  - {id: 2, label: Standard case 2, operations: [{id: 1, duration: 14.5, setup: 3.0, transition: 2.0, cleanup: 1.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-2, AN-4, AN-3]}, {id: 2, duration: 43.0, setup: 0.0, transition: 0.0, cleanup: 5.0, max_wait: 48.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-2, SU-5, SU-3]}]}
+  - {id: 3, label: Standard case 3, operations: [{id: 1, duration: 9.0, setup: 1.5, transition: 3.0, cleanup: 0.5, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-1, AN-4, AN-3]}, {id: 2, duration: 27.0, setup: 0.0, transition: 0.0, cleanup: 3.0, max_wait: 42.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-3, SU-4, SU-5]}]}
+  - {id: 4, label: Standard case 4, operations: [{id: 1, duration: 16.5, setup: 3.5, transition: 1.5, cleanup: 1.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-3, AN-4, AN-5]}, {id: 2, duration: 47.0, setup: 0.0, transition: 0.0, cleanup: 5.5, max_wait: 52.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-1, SU-5, SU-6]}]}
+  - {id: 5, label: Standard case 5, operations: [{id: 1, duration: 10.5, setup: 2.0, transition: 2.5, cleanup: 0.5, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-1, AN-2, AN-5]}, {id: 2, duration: 30.0, setup: 0.0, transition: 0.0, cleanup: 3.5, max_wait: 44.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-2, SU-4, SU-6]}]}
+  - {id: 6, label: Standard case 6, operations: [{id: 1, duration: 12.0, setup: 2.5, transition: 2.0, cleanup: 1.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-2, AN-3, AN-6]}, {id: 2, duration: 35.0, setup: 0.0, transition: 0.0, cleanup: 4.0, max_wait: 46.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-4, SU-5, SU-7]}]}
+  - {id: 7, label: Standard case 7, operations: [{id: 1, duration: 8.0, setup: 1.0, transition: 3.5, cleanup: 0.5, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-1, AN-4, AN-2]}, {id: 2, duration: 21.0, setup: 0.0, transition: 0.0, cleanup: 2.5, max_wait: 39.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-1, SU-2, SU-8]}]}
+  - {id: 8, label: Standard case 8, operations: [{id: 1, duration: 18.0, setup: 4.0, transition: 1.0, cleanup: 1.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-3, AN-4, AN-2]}, {id: 2, duration: 53.0, setup: 0.0, transition: 0.0, cleanup: 6.0, max_wait: 55.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-3, SU-5, SU-9]}]}
+  - {id: 9, label: Standard case 9, operations: [{id: 1, duration: 11.0, setup: 2.0, transition: 3.0, cleanup: 0.5, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-1, AN-3, AN-4]}, {id: 2, duration: 33.0, setup: 0.0, transition: 0.0, cleanup: 4.0, max_wait: 45.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-2, SU-5, SU-10]}]}
+  - {id: 10, label: Standard case 10, operations: [{id: 1, duration: 15.0, setup: 3.0, transition: 2.5, cleanup: 1.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-2, AN-4, AN-5]}, {id: 2, duration: 45.0, setup: 0.0, transition: 0.0, cleanup: 5.0, max_wait: 50.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-1, SU-4, SU-2]}]}
+  - {id: 11, label: Standard case 11, operations: [{id: 1, duration: 9.5, setup: 1.5, transition: 2.0, cleanup: 0.5, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-1, AN-2, AN-5]}, {id: 2, duration: 25.0, setup: 0.0, transition: 0.0, cleanup: 3.0, max_wait: 41.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-3, SU-4, SU-2]}]}
+  - {id: 12, label: Standard case 12, operations: [{id: 1, duration: 13.0, setup: 2.5, transition: 1.5, cleanup: 1.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-3, AN-4, AN-6]}, {id: 2, duration: 39.0, setup: 0.0, transition: 0.0, cleanup: 4.5, max_wait: 47.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-2, SU-3, SU-4]}]}
+  - {id: 13, label: Standard case 13, operations: [{id: 1, duration: 7.0, setup: 1.0, transition: 4.0, cleanup: 0.5, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-1, AN-4, AN-2]}, {id: 2, duration: 20.0, setup: 0.0, transition: 0.0, cleanup: 2.0, max_wait: 38.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-4, SU-5, SU-6]}]}
+  - {id: 14, label: Standard case 14, operations: [{id: 1, duration: 17.0, setup: 3.5, transition: 2.0, cleanup: 1.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-2, AN-3, AN-4]}, {id: 2, duration: 50.0, setup: 0.0, transition: 0.0, cleanup: 5.5, max_wait: 54.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-1, SU-5, SU-6]}]}
+  - {id: 15, label: Standard case 15, operations: [{id: 1, duration: 12.5, setup: 2.0, transition: 2.5, cleanup: 0.5, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [AN-1, AN-3, AN-4]}, {id: 2, duration: 36.0, setup: 0.0, transition: 0.0, cleanup: 4.0, max_wait: 46.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], eligible_personnel: [SU-2, SU-4, SU-6]}]}
+bounds: {status: pending, method_version: course-lb-v1}
+validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 7.5, p50: 18.0, p90: 47.0}, dispersion: {coefficient_of_variation: 0.58}, rank_correlations: {anesthesia_surgery: 0.83}, workload_capacity_ratios: {rooms: 0.69, anesthetists: 0.43, surgeons: 0.35}}}
+digest: 1c59e8d211dafb58fed0e0f6cb6acc4ce21b77aa0b6c3ea02ea5f28743328d4b

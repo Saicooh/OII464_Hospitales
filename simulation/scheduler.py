@@ -1,487 +1,377 @@
-# /simulation/scheduler.py
+"""Decode and validate a candidate schedule for one instance."""
 
-import heapq
+from typing import Any
 
-# Import all necessary constants from the centralized configuration file.
-from config.config import (
-    ALL_ROOMS,
-    ALL_PERSONNEL,
-    PERSONNEL_BY_OPERATION,
-    SETUP_TIMES,
-    CLEANUP_TIMES,
-    JOB_TYPES,
-    MAX_WAIT_TIMES,
-    ALPHA,
-    BETA,
-    GAMMA,
-    DELTA,
-    PABELLONES,
-    VERBOSE_MODE,
-    get_job_type,
-)
+from data.instance_model import InstanceContext
 
 
-def run_static_schedule(algorithm_runner, surgeries_data, job_ids, seed):
-    """Run an algorithm and decode its solution for a static schedule."""
-    _, solution, best_history, average_history = algorithm_runner(
-        surgeries_data, job_ids, seed
-    )
-    if not solution:
-        raise RuntimeError("Failed to generate initial schedule!")
-
-    _, makespan, schedule_details = calculate_schedule_fitness(
-        solution, surgeries_data, return_details=True
-    )
-    return schedule_details, makespan, best_history, average_history
+class IneligibleAssignmentError(ValueError):
+    """Raised when a candidate names a resource outside operation eligibility."""
 
 
-def _assign_best_available_personnel(
-    operation_num, room_release_time, personnel_release_time, current_time
-):
-    """
-    Dynamically assigns the best available personnel for a given operation.
+def schedule_instance_solution(
+    context: InstanceContext, solution: Any
+) -> tuple[float, tuple]:
+    """Decode one candidate using only the selected instance's immutable data."""
+    from simulation.result_model import ScheduleEntry
 
-    Args:
-        operation_num (int): Operation number (1=Anestesia, 2=Cirugia)
-        room_release_time (dict): Current release times for rooms
-        personnel_release_time (dict): Current release times for personnel
-        current_time (float): Current simulation time
-
-    Returns:
-        str: ID of the assigned personnel (e.g., "A1", "S2", "D1")
-    """
-    # Get the list of personnel that can perform this operation
-    available_personnel = PERSONNEL_BY_OPERATION[operation_num]
-
-    # Find the personnel that will be available earliest
-    # In case of tie, pick the first one (deterministic)
-    best_personnel = min(
-        available_personnel, key=lambda p: (personnel_release_time.get(p, 0), p)
-    )
-
-    return best_personnel
-
-
-def get_operation_timing(job_data, job_type, operation_num):
-    """Return the setup, transition, and cleanup times used by the scheduler."""
-    setup_by_op = job_data.get("setup_by_op")
-    transition_by_op = job_data.get("transition_by_op")
-    cleanup_by_op = job_data.get("cleanup_by_op")
-
-    if setup_by_op is not None and operation_num in setup_by_op:
-        setup_time = setup_by_op[operation_num]
+    job_ids = [job.job_id for job in context.jobs]
+    if hasattr(solution, "job_sequence_base"):
+        sequence = list(solution.job_sequence_base)
+        room_assignments = solution.room_assignment
+        personnel_assignments = solution.personnel_assignment or {}
     else:
-        setup_time = SETUP_TIMES.get(job_type, SETUP_TIMES[1]) if operation_num == 1 else 0.0
+        sequence = list(solution.get("job_sequence_base", ()))
+        room_assignments = solution.get("room_assignment", {})
+        personnel_assignments = solution.get("personnel_assignment", {})
+    # The historical GA encoded the base sequence twice.  Keep accepting that
+    # representation at the compatibility boundary while retaining a strict
+    # one-job-per-instance schedule internally.
+    if len(sequence) < len(job_ids) or set(sequence) != set(job_ids):
+        raise ValueError("job_sequence_base must contain every instance job exactly once")
+    sequence = list(dict.fromkeys(sequence))
 
-    if transition_by_op is not None and operation_num in transition_by_op:
-        transition_time = transition_by_op[operation_num]
-    else:
-        transition_time = 0.0
-
-    if cleanup_by_op is not None and operation_num in cleanup_by_op:
-        cleanup_time = cleanup_by_op[operation_num]
-    else:
-        cleanup_time = CLEANUP_TIMES.get(job_type, CLEANUP_TIMES[1]) if operation_num == 2 else 0.0
-
-    return setup_time, transition_time, cleanup_time, setup_by_op is not None
-
-
-def calculate_operation_start(
-    operation_num, earliest_setup_start, previous_operation_end, transition_time, setup_time
-):
-    """Calculate an operation start using the scheduler's timing semantics."""
-    if operation_num > 1:
-        setup_start_time = max(earliest_setup_start, previous_operation_end)
-        actual_start_time = setup_start_time + transition_time + setup_time
-    else:
-        setup_start_time = earliest_setup_start
-        actual_start_time = setup_start_time + max(transition_time, setup_time)
-
-    return setup_start_time, actual_start_time
-
-
-def exceeds_max_wait(operation_num, wait_time, processing_end=None, finish=None):
-    """Return whether the supplied inter-operation wait exceeds its limit.
-
-    The optional arguments preserve the legacy helper call used by the
-    dispatching baseline outside this module; the unified scheduler passes
-    the explicitly calculated inter-operation wait through ``wait_time``.
-    """
-    if processing_end is not None and finish is not None:
-        actual_start_time = wait_time
-        processing_time = processing_end - actual_start_time
-        wait_time = (finish - actual_start_time) - processing_time
-    return wait_time > MAX_WAIT_TIMES[operation_num]
-
-
-_FITNESS_CACHE = {}
-_LAST_SURGERIES_DATA_ID = None
-# Strong reference to the surgeries_data object whose id() is currently stored in
-# _LAST_SURGERIES_DATA_ID. This is NOT dead code: do not remove it.
-# CPython reuses id() values (memory addresses) once an object is garbage
-# collected. Without this reference, a dataset could be freed and a different
-# surgeries_data dict could be allocated at the same address; the identity check
-# below would then report "same dataset", the stale cache would be kept, and a
-# lookup could silently return another dataset's fitness with no error signal.
-# Keeping the object alive makes its id() unique for as long as it owns the
-# cache, which closes the hazard at zero per-call cost (no content hashing).
-_LAST_SURGERIES_DATA_REF = None
-
-
-def calculate_schedule_fitness(solution, surgeries_data, return_details=False):
-    """
-    Calculates the fitness (combined objective) for a given solution.
-
-    This is the UNIFIED simulation function for all algorithms.
-    Takes a 'solution' in a standard format and simulates the scheduling
-    applying the "no buffer" blocking constraint with DYNAMIC personnel assignment.
-
-    NEW: Includes penalties for:
-    - Waiting times between consecutive operations (flow continuity)
-    - Room usage imbalance (to encourage using all available rooms)
-
-    Args:
-        solution (dict): A dictionary representing the solution with:
-                         'job_sequence_base': a list with the priority order of jobs.
-                         'room_assignment': a nested dict assigning rooms to each operation of each job.
-        surgeries_data (dict): Processing times for each operation of each surgery.
-        return_details (bool): If True, returns full details for the Gantt chart.
-
-    Returns:
-        float: The value of the combined objective function.
-        Or a tuple (combined_obj, makespan, schedule_details) if return_details is True.
-    """
-    # --- 1. Solution Data Extraction ---
-    global _FITNESS_CACHE, _LAST_SURGERIES_DATA_ID, _LAST_SURGERIES_DATA_REF
-
-    if not return_details:
-        current_data_id = id(surgeries_data)
-        if current_data_id != _LAST_SURGERIES_DATA_ID:
-            _FITNESS_CACHE.clear()
-            _LAST_SURGERIES_DATA_ID = current_data_id
-            # Pin the owning dataset alive so its id() cannot be recycled.
-            # See the module-level note on _LAST_SURGERIES_DATA_REF.
-            _LAST_SURGERIES_DATA_REF = surgeries_data
-
-        seq_base = solution.get("job_sequence_base", [])
-        seq_key = tuple(seq_base)
-        room_assignment = solution.get("room_assignment", {})
-        room_key = tuple(
-            (job, tuple(sorted(ops.items())))
-            for job, ops in sorted(room_assignment.items())
-        )
-        cache_key = (seq_key, room_key)
-        if cache_key in _FITNESS_CACHE:
-            return _FITNESS_CACHE[cache_key]
-
-    job_sequence_base = solution.get("job_sequence_base", [])
-    room_assignment = solution.get("room_assignment", {})
-    current_job_ids = list(room_assignment.keys())
-
-    if not current_job_ids or not job_sequence_base:
-        return (float("inf"), float("inf"), None) if return_details else float("inf")
-
-    total_ops = 2 * len(current_job_ids)
-
-    # Persisted schedules can outlive the configuration profile that created
-    # them. Include every room referenced by the solution so replay and
-    # offline analysis remain able to rehydrate historical schedules.
-    assigned_rooms = {
-        room
-        for operations in room_assignment.values()
-        for room in operations.values()
-        if room is not None
+    room_release = {room: 0.0 for room in context.rooms}
+    personnel_release = {
+        person: 0.0
+        for _, people in context.personnel_by_operation
+        for person in people
     }
-    schedule_rooms = list(dict.fromkeys([*ALL_ROOMS, *sorted(assigned_rooms)]))
+    jobs = {job.job_id: job for job in context.jobs}
+    schedule: list[ScheduleEntry] = []
 
-    # --- 2. Simulation State Initialization ---
-    room_release_time = {room: 0 for room in schedule_rooms}
-    personnel_release_time = {pers: 0 for pers in ALL_PERSONNEL}
-    job_op_processing_end = {job: {0: 0} for job in current_job_ids}
-    job_op_machine_end = {job: {0: 0} for job in current_job_ids}
-    job_op_start = {job: {0: 0} for job in current_job_ids}
-    job_op_used_res = {job: {0: (None, None)} for job in current_job_ids}
-    next_op_num = {job: 1 for job in current_job_ids}
-    ops_done = 0
-    job_priority = {job: i for i, job in enumerate(job_sequence_base)}
-    schedule_details = []
+    for job_id in sequence:
+        job = jobs[job_id]
+        assignments = room_assignments.get(job_id, {})
+        people = personnel_assignments.get(job_id, {})
+        resolved: list[tuple[str, str]] = []
+        for operation in job.operations:
+            room = assignments.get(operation.operation_id)
+            if room not in operation.eligible_rooms:
+                raise IneligibleAssignmentError(
+                    f"job {job_id} operation {operation.operation_id}: "
+                    f"ineligible room {room!r}"
+                )
+            person = people.get(operation.operation_id)
+            if person is None:
+                person = min(
+                    operation.eligible_personnel,
+                    key=lambda item: (personnel_release[item], item),
+                )
+            if person not in operation.eligible_personnel:
+                raise IneligibleAssignmentError(
+                    f"job {job_id} operation {operation.operation_id}: "
+                    f"ineligible personnel {person!r}"
+                )
+            resolved.append((room, person))
 
-    # NEW: Track waiting times between consecutive operations
-    total_inter_operation_wait = 0
-    max_inter_operation_wait = 0
+        anesthesia, surgery = job.operations
+        room_1, person_1 = resolved[0]
+        setup_start = max(room_release[room_1], personnel_release[person_1])
+        anesthesia_start = setup_start + max(anesthesia.transition, anesthesia.setup)
+        anesthesia_end = anesthesia_start + anesthesia.duration
+        anesthesia_finish = anesthesia_end + anesthesia.cleanup
 
-    # --- 3. Main Simulation Loop (Discrete Event Logic) ---
-    # Priority queue to manage the next operation to schedule.
-    # Format: (estimated_start_time, job_priority, job_counter, job_id, operation_num)
-    possible_ops = []
-
-    # NEW: Tie-break counter (ensures comparisons are numeric)
-    job_counter = {job: i for i, job in enumerate(current_job_ids)}
-
-    # Initialize the queue with the first operation (op=1) of each job.
-    for job in current_job_ids:
-        op = 1
-        # Validate that the solution has room assignment for this operation
-        if job not in room_assignment or op not in room_assignment[job]:
-            return (
-                (float("inf"), float("inf"), None) if return_details else float("inf")
+        room_2, person_2 = resolved[1]
+        surgery_setup_start = max(
+            anesthesia_finish, room_release[room_2], personnel_release[person_2]
+        )
+        surgery_start = surgery_setup_start + max(surgery.transition, surgery.setup)
+        wait = surgery_start - anesthesia_finish
+        if wait > surgery.max_wait:
+            raise ValueError(
+                f"job {job_id} operation 2 wait {wait} exceeds {surgery.max_wait}"
             )
+        surgery_end = surgery_start + surgery.duration
+        finish = surgery_end + surgery.cleanup
 
-        assigned_room = room_assignment[job][op]
-
-        # Personnel will be assigned dynamically, so we estimate with the earliest available
-        available_personnel = PERSONNEL_BY_OPERATION[op]
-        earliest_personnel_time = min(
-            personnel_release_time.get(p, 0) for p in available_personnel
+        schedule.extend(
+            (
+                ScheduleEntry(
+                    job_id,
+                    1,
+                    room_1,
+                    person_1,
+                    setup_start,
+                    anesthesia_end,
+                    anesthesia_finish,
+                    anesthesia.setup,
+                    anesthesia.transition,
+                    anesthesia.cleanup,
+                ),
+                ScheduleEntry(
+                    job_id,
+                    2,
+                    room_2,
+                    person_2,
+                    surgery_setup_start,
+                    surgery_end,
+                    finish,
+                    surgery.setup,
+                    surgery.transition,
+                    surgery.cleanup,
+                ),
+            )
         )
+        room_release[room_1] = finish
+        room_release[room_2] = finish
+        personnel_release[person_1] = surgery_start
+        personnel_release[person_2] = finish
 
-        # The estimated start time is when the necessary resources are free.
-        start_time = max(
-            room_release_time.get(assigned_room, 0), earliest_personnel_time
+    makespan = max((entry.finish for entry in schedule), default=0.0)
+    return makespan, tuple(schedule)
+
+
+def _legacy_context(surgeries_data: Any) -> InstanceContext:
+    """Build a context for callers that still pass the historical data map."""
+    from data.instance_model import Job, Operation
+    from config.config import (
+        ALL_ROOMS,
+        CLEANUP_TIMES,
+        MAX_WAIT_TIMES,
+        PERSONNEL_BY_OPERATION,
+        SETUP_TIMES,
+    )
+
+    job_ids = sorted(int(job_id) for job_id in surgeries_data)
+    jobs = []
+    for job_id in job_ids:
+        raw = surgeries_data[job_id]
+        operations = []
+        for operation_id in (1, 2):
+            setup_by_op = raw.get("setup_by_op", {})
+            transition_by_op = raw.get("transition_by_op", {})
+            cleanup_by_op = raw.get("cleanup_by_op", {})
+            operations.append(
+                Operation(
+                    operation_id=operation_id,
+                    duration=float(raw[operation_id]),
+                    setup=float(setup_by_op.get(operation_id, SETUP_TIMES.get(operation_id, 0.0))),
+                    transition=float(transition_by_op.get(operation_id, 0.0)),
+                    cleanup=float(cleanup_by_op.get(operation_id, CLEANUP_TIMES.get(operation_id, 0.0))),
+                    max_wait=float(raw.get("max_wait_by_op", {}).get(operation_id, MAX_WAIT_TIMES.get(operation_id, 10_000.0))),
+                    eligible_rooms=tuple(ALL_ROOMS),
+                    eligible_personnel=tuple(PERSONNEL_BY_OPERATION.get(operation_id, ())),
+                )
+            )
+        jobs.append(Job(job_id=job_id, label="", operations=tuple(operations)))
+    return InstanceContext(
+        schema_version=1,
+        instance_id="legacy-map",
+        family="legacy-compatibility",
+        classification="fully synthetic instance",
+        generation_seed=0,
+        rooms=tuple(ALL_ROOMS),
+        personnel_by_operation=tuple(
+            (operation_id, tuple(people))
+            for operation_id, people in sorted(PERSONNEL_BY_OPERATION.items())
+        ),
+        jobs=tuple(jobs),
+        digest="0" * 64,
+    )
+
+
+def _fitness_for_context(
+    context: InstanceContext, solution: Any, return_details: bool = False
+) -> float | tuple[float, float, list[dict[str, Any]]]:
+    """Historical priority-queue scheduler parameterized by one instance."""
+    import heapq
+    from config.config import ALPHA, BETA, DELTA, GAMMA, MAX_WAIT_TIMES
+
+    if hasattr(solution, "to_dict"):
+        solution = solution.to_dict()
+    if not isinstance(solution, dict):
+        return (float("inf"), float("inf"), []) if return_details else float("inf")
+
+    job_ids = [job.job_id for job in context.jobs]
+    sequence = list(solution.get("job_sequence_base", ()))
+    assignments = solution.get("room_assignment", {})
+    if len(sequence) < len(job_ids) or set(sequence) != set(job_ids):
+        return (float("inf"), float("inf"), []) if return_details else float("inf")
+    if set(assignments) != set(job_ids):
+        return (float("inf"), float("inf"), []) if return_details else float("inf")
+
+    operations = {
+        (job.job_id, operation.operation_id): operation
+        for job in context.jobs
+        for operation in job.operations
+    }
+    personnel_release = {
+        person: 0.0
+        for _, people in context.personnel_by_operation
+        for person in people
+    }
+    room_release = {room: 0.0 for room in context.rooms}
+    job_priority = {job_id: index for index, job_id in enumerate(sequence)}
+    job_counter = {job_id: index for index, job_id in enumerate(job_ids)}
+    job_processing_end = {job_id: {0: 0.0} for job_id in job_ids}
+    job_used_resources: dict[int, dict[int, tuple[str | None, str | None]]] = {
+        job_id: {0: (None, None)} for job_id in job_ids
+    }
+    next_operation = {job_id: 1 for job_id in job_ids}
+    queue: list[tuple[float, int, int, int, int]] = []
+    details: list[dict[str, Any]] = []
+
+    for job_id in job_ids:
+        operation = operations[(job_id, 1)]
+        room = assignments[job_id].get(1)
+        if room not in operation.eligible_rooms:
+            return (float("inf"), float("inf"), []) if return_details else float("inf")
+        earliest_person = min(
+            (personnel_release[person] for person in operation.eligible_personnel),
+            default=float("inf"),
         )
-        # Add job_counter as third element for tie-breaking
         heapq.heappush(
-            possible_ops, (start_time, job_priority[job], job_counter[job], job, op)
+            queue,
+            (
+                max(room_release[room], earliest_person),
+                job_priority[job_id],
+                job_counter[job_id],
+                job_id,
+                1,
+            ),
         )
 
-    # Wrap debug prints with VERBOSE_MODE
-    """if return_details and VERBOSE_MODE:  # Add VERBOSE_MODE
-        jobs_at_zero = sum(1 for op_tuple in possible_ops if op_tuple[0] == 0)
-        print(f"\n  🔍 DEBUG INICIAL:")
-        print(f"     Total jobs: {len(current_job_ids)}")
-        print(f"     Jobs that can start at t=0: {jobs_at_zero}")
-        print(f"     APR rooms available: {len([r for r in ALL_ROOMS if r.startswith('APR')])}")
-        print(f"     Anesthetists available: {len(PERSONNEL_BY_OPERATION[1])}")"""
+    total_inter_operation_wait = 0.0
+    max_inter_operation_wait = 0.0
+    operations_done = 0
+    total_operations = 2 * len(job_ids)
 
-    while ops_done < total_ops:
-        if not possible_ops:
-            return (
-                (float("inf"), float("inf"), None) if return_details else float("inf")
-            )
+    while operations_done < total_operations:
+        if not queue:
+            return (float("inf"), float("inf"), []) if return_details else float("inf")
+        _, _, _, job_id, operation_id = heapq.heappop(queue)
+        operation = operations[(job_id, operation_id)]
+        room = assignments[job_id].get(operation_id)
+        if room not in operation.eligible_rooms:
+            return (float("inf"), float("inf"), []) if return_details else float("inf")
+        personnel = min(
+            operation.eligible_personnel,
+            key=lambda person: (personnel_release[person], person),
+        )
+        previous_end = job_processing_end[job_id][operation_id - 1]
+        setup_start = max(room_release[room], personnel_release[personnel])
+        if operation_id > 1:
+            setup_start = max(setup_start, previous_end)
+            actual_start = setup_start + operation.transition + operation.setup
+        else:
+            actual_start = setup_start + max(operation.transition, operation.setup)
+        wait = max(0.0, actual_start - previous_end) if operation_id > 1 else 0.0
+        # The historical runner was configured with a legacy feasibility
+        # budget (500 minutes in the previous repository).  Synthetic YAML
+        # instances can contain tighter clinical wait metadata, but applying
+        # it directly here makes the old dispatch order reject every
+        # candidate on large instances.  Keep the larger configured legacy
+        # budget for this compatibility evaluator; the typed scheduler above
+        # still enforces the instance's declared max_wait.
+        historical_wait_limit = max(
+            float(operation.max_wait),
+            float(MAX_WAIT_TIMES.get(operation_id, operation.max_wait)),
+        )
+        if wait > historical_wait_limit:
+            return (float("inf"), float("inf"), []) if return_details else float("inf")
+        total_inter_operation_wait += wait
+        max_inter_operation_wait = max(max_inter_operation_wait, wait)
+        processing_end = actual_start + operation.duration
+        finish = processing_end + operation.cleanup
 
-        # Select the most promising operation from the queue.
-        _, _, _, best_job, best_op = heapq.heappop(
-            possible_ops
-        )  # Extra '_' for job_counter
-
-        # --- CRITICAL RE-CALCULATION WITH DYNAMIC PERSONNEL ASSIGNMENT ---
-        assigned_room = room_assignment[best_job][best_op]
-        prev_op_end_time = job_op_processing_end[best_job][best_op - 1]
-
-        # DYNAMIC: Assign the best available personnel for this operation type
-        assigned_personnel = _assign_best_available_personnel(
-            best_op, room_release_time, personnel_release_time, prev_op_end_time
+        job_processing_end[job_id][operation_id] = processing_end
+        job_used_resources[job_id][operation_id] = (room, personnel)
+        details.append(
+            {
+                "Job": job_id,
+                "Operation": operation_id,
+                "Resource": room,
+                "Personnel": personnel,
+                "Start": setup_start,
+                "ProcessingEnd": processing_end,
+                "Finish": finish,
+                "SetupUsed": operation.setup,
+                "TransitionUsed": operation.transition,
+                "CleanupUsed": operation.cleanup,
+            }
         )
 
-        job_data = surgeries_data[best_job]
-        job_type = get_job_type(best_job)
-        setup_time, transition_time, cleanup_time, has_dynamic_data = get_operation_timing(
-            job_data, job_type, best_op
-        )
-
-        # Setup/transition can start before the previous operation ends
-        earliest_setup_start = max(
-            room_release_time[assigned_room], personnel_release_time[assigned_personnel]
-        )
-
-        setup_start_time, actual_start_time = calculate_operation_start(
-            best_op,
-            earliest_setup_start,
-            prev_op_end_time,
-            transition_time,
-            setup_time,
-        )
-
-        # Calculate waiting time between operations of the same job.
-        wait_time = 0.0
-        if best_op > 1:
-            wait_time = actual_start_time - prev_op_end_time
-            if wait_time > 0:
-                total_inter_operation_wait += wait_time
-                max_inter_operation_wait = max(max_inter_operation_wait, wait_time)
-
-        # Schedule the selected operation
-        processing_time = surgeries_data[best_job][best_op]
-
-        proc_end = actual_start_time + processing_time
-        finish = proc_end + cleanup_time
-
-        # Validate maximum waiting time constraint
-        if exceeds_max_wait(best_op, wait_time):
-            return (
-                (float("inf"), float("inf"), None) if return_details else float("inf")
-            )
-
-        # Save the scheduling results for this operation
-        job_op_start[best_job][best_op] = actual_start_time
-        job_op_processing_end[best_job][best_op] = proc_end
-        job_op_machine_end[best_job][best_op] = finish
-        job_op_used_res[best_job][best_op] = (assigned_room, assigned_personnel)
-
-        if return_details:
-            # SetupUsed / TransitionUsed / CleanupUsed: tiempos realmente usados
-            # Op1: SetupUsed = setup_qx_anestesia, TransitionUsed = tiempo_transicion
-            # Op2: SetupUsed = 0.0, TransitionUsed = 0.0, CleanupUsed = tiempo_limpieza
-            if has_dynamic_data:
-                transition_used = transition_time
-                setup_used = setup_time
-            else:
-                transition_used = 0.0
-                setup_used = setup_time
-
-            schedule_details.append(
-                {
-                    "Job": best_job,
-                    "Operation": best_op,
-                    "Resource": assigned_room,
-                    "Personnel": assigned_personnel,
-                    "Start": setup_start_time,
-                    "ProcessingEnd": proc_end,
-                    "Finish": finish,
-                    # Tiempos realmente usados
-                    "SetupUsed": setup_used,
-                    "TransitionUsed": transition_used,
-                    "CleanupUsed": cleanup_time,
-                }
-            )
-
-        """if return_details and ops_done < 10 and VERBOSE_MODE:
-            print(f"Op #{ops_done+1}: Job {best_job} Op{best_op}")
-            print(f"     → Room: {assigned_room} (available at t={room_release_time[assigned_room]:.2f})")
-            print(f"     → Personnel: {assigned_personnel} (available at t={personnel_release_time[assigned_personnel]:.2f})")
-            print(f"     → Starts at: t={actual_start_time:.2f}")"""
-
-        # --- Update Resource Release Times ---
-        room_release_time[assigned_room] = finish
-        personnel_release_time[assigned_personnel] = finish
-
-        # Blocking logic (no-buffer): resources from previous operation are released
-        if best_op > 1:
-            prev_room, prev_personnel = job_op_used_res[best_job][best_op - 1]
-            if prev_room:
-                room_release_time[prev_room] = max(
-                    room_release_time[prev_room], setup_start_time
-                )
-            if prev_personnel:
-                personnel_release_time[prev_personnel] = max(
-                    personnel_release_time[prev_personnel], setup_start_time
+        room_release[room] = finish
+        personnel_release[personnel] = finish
+        if operation_id > 1:
+            previous_room, previous_personnel = job_used_resources[job_id][operation_id - 1]
+            if previous_room is not None:
+                room_release[previous_room] = max(room_release[previous_room], setup_start)
+            if previous_personnel is not None:
+                personnel_release[previous_personnel] = max(
+                    personnel_release[previous_personnel], setup_start
                 )
 
-        # Add the next operation of this job to the queue
-        ops_done += 1
-        next_op_num[best_job] += 1
-        next_op = next_op_num[best_job]
-
-        if next_op <= 2:
-            next_assigned_room = room_assignment[best_job][next_op]
-
-            # Estimate with earliest available personnel for this operation type
-            available_personnel = PERSONNEL_BY_OPERATION[next_op]
-            earliest_personnel_time = min(
-                personnel_release_time.get(p, 0) for p in available_personnel
+        operations_done += 1
+        next_operation[job_id] += 1
+        following = next_operation[job_id]
+        if following <= 2:
+            next_data = operations[(job_id, following)]
+            next_room = assignments[job_id].get(following)
+            if next_room not in next_data.eligible_rooms:
+                return (float("inf"), float("inf"), []) if return_details else float("inf")
+            next_personnel_release = min(
+                (personnel_release[person] for person in next_data.eligible_personnel),
+                default=float("inf"),
             )
-
-            next_start_time = max(
-                job_op_processing_end[best_job][best_op],
-                room_release_time.get(next_assigned_room, 0),
-                earliest_personnel_time,
-            )
-
-            # NEW: Priority boost for continuing the same job (flow continuity)
-            # Use negative job priority to prioritize continuation
-            continuity_priority = -1 if next_op > 1 else job_priority[best_job]
-
+            priority = -1 if following > 1 else job_priority[job_id]
             heapq.heappush(
-                possible_ops,
+                queue,
                 (
-                    next_start_time,
-                    continuity_priority,
-                    job_counter[best_job],
-                    best_job,
-                    next_op,
+                    max(job_processing_end[job_id][operation_id], room_release[next_room], next_personnel_release),
+                    priority,
+                    job_counter[job_id],
+                    job_id,
+                    following,
                 ),
             )
 
-    # --- 4. Final Metrics Calculation ---
-    try:
-        final_makespan = max(
-            job_op_machine_end.get(j, {}).get(2, 0) for j in current_job_ids
-        )
-    except (ValueError, TypeError):
-        final_makespan = float("inf")
-
-    if final_makespan == 0 and total_ops > 0:
-        return (float("inf"), float("inf"), None) if return_details else float("inf")
-
-    # NEW: Validate makespan consistency with schedule_details
-    if return_details and schedule_details and VERBOSE_MODE:  # Add VERBOSE_MODE
-        max_finish_from_details = max(t.get("Finish", 0) for t in schedule_details)
-        if abs(final_makespan - max_finish_from_details) > 0.01:
-            print(
-                f"  -> [ERROR] MAKESPAN MISMATCH! Calculated: {final_makespan:.2f}, CSV: {max_finish_from_details:.2f}"
-            )
-            print(f"     Last operation in job_op_machine_end: {job_op_machine_end}")
-            print(f"     Last task in schedule_details: {schedule_details[-1]}")
-
-    total_start_time = sum(
-        job_op_start.get(j, {}).get(op, 0)
-        for j in current_job_ids
-        for op in [1, 2]
-        if job_op_start.get(j, {}).get(op, -1) >= 0
+    final_makespan = max(
+        (job_processing_end[job_id][2] + operations[(job_id, 2)].cleanup for job_id in job_ids),
+        default=0.0,
     )
-
-    # NEW: Calculate room utilization imbalance penalty
-    room_usage_count = {room: 0 for room in schedule_rooms}
-    for job in current_job_ids:
-        for op in [1, 2]:
-            assigned_room, _ = job_op_used_res[job][op]
-            if assigned_room:
-                room_usage_count[assigned_room] += 1
-
-    # Calculate coefficient of variation for each room type
-    def calculate_imbalance(room_list):
-        """Calculate imbalance with progressive penalty for unused rooms"""
-        if not room_list:
-            return 0
-        usages = [room_usage_count[room] for room in room_list]
-        total_jobs = sum(usages)
-
-        if total_jobs == 0:
-            return 0
-
-        # Count completely unused rooms
-        unused_count = sum(1 for u in usages if u == 0)
-
-        # Calculate coefficient of variation (CV)
-        mean_usage = total_jobs / len(usages)
-        if mean_usage == 0:
-            return 0
-        variance = sum((u - mean_usage) ** 2 for u in usages) / len(usages)
-        std_dev = variance**0.5
-        cv = std_dev / mean_usage
-
-        # Progressive penalty for unused rooms:
-        # 0 unused → +0
-        # 1 unused → +2
-        # 2 unused → +5
-        # 3 unused → +10
-        unused_penalty = unused_count * (unused_count + 1)
-
-        return cv + unused_penalty
-
-    total_imbalance = calculate_imbalance(schedule_rooms)
-
-    # NEW: Multi-objective function with flow continuity penalties + balance penalty
-    combined_obj = (
+    room_usage = {room: 0 for room in context.rooms}
+    for job_id in job_ids:
+        for operation_id in (1, 2):
+            room = job_used_resources[job_id][operation_id][0]
+            if room is not None:
+                room_usage[room] += 1
+    usages = list(room_usage.values())
+    total_usage = sum(usages)
+    if total_usage and usages:
+        average_usage = total_usage / len(usages)
+        variance = sum((value - average_usage) ** 2 for value in usages) / len(usages)
+        unused = sum(value == 0 for value in usages)
+        imbalance = variance**0.5 / average_usage + unused * (unused + 1)
+    else:
+        imbalance = 0.0
+    total_start = sum(
+        item["Start"]
+        for item in details
+    )
+    objective = (
         final_makespan
-        + ALPHA * total_start_time
+        + ALPHA * total_start
         + BETA * total_inter_operation_wait
         + GAMMA * max_inter_operation_wait
-        + DELTA * total_imbalance
+        + DELTA * imbalance
     )
+    return (objective, final_makespan, details) if return_details else objective
 
-    if return_details:
-        return combined_obj, final_makespan, schedule_details
-    else:
-        _FITNESS_CACHE[cache_key] = combined_obj
-        return combined_obj
+
+def calculate_schedule_fitness(
+    solution: Any, surgeries_data: Any, return_details: bool = False
+) -> float | tuple[float, float, list[dict[str, Any]]]:
+    """Evaluate legacy algorithm candidates using selected synthetic data."""
+    context = getattr(surgeries_data, "context", None)
+    if context is None:
+        context = _legacy_context(surgeries_data)
+    return _fitness_for_context(context, solution, return_details=return_details)
+
+
+__all__ = [
+    "IneligibleAssignmentError",
+    "calculate_schedule_fitness",
+    "schedule_instance_solution",
+]

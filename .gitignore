@@ -30,9 +30,43 @@ logs/
 # Test/coverage & test outputs
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
-test_output/*.png
-test_output/*.svg
+test_output/
+.hypothesis/
+.tox/
+.nox/
+
+# Local configuration and temporary files
+.env
+.env.*
+!.env.example
+*.local
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+
+# Python packaging/build outputs
+build/
+dist/
+*.egg
+*.egg-info/
+pip-wheel-metadata/
+
+# Notebooks and local data
+.ipynb_checkpoints/
+datasets/
+*.pkl
+*.pickle
+*.db
+*.sqlite
+*.sqlite3
+
+# Internal planning artifacts
+openspec/
 
 # LaTeX build artifacts
 *.aux

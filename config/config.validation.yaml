@@ -1,93 +1,54 @@
-# Minimal controlled elective-only run for no-overlap PKL validation.
-
-real_data:
-  enabled: true
-  trace_csv_path: results/csv/raw_batch_trace.csv
-  reset_trace_on_start: true
-
-logging:
-  verbose_mode: true
+# Small validation comparison using a synthetic instance.
+instance:
+  path: instances/didactic/HOSP-DIDACT-03-01.yaml
 
 experiment:
   num_simulations: 1
-  num_procedures: 15
-  std_factor_times: 0.0
+  n_jobs: 1
   alpha_test: 0.05
+  std_factor_times: 0.15
   save_pdf: false
   output_dirs:
-    plots: results/plots
-    csv: results/csv
-
-times:
-  # max_wait is used in both real-data and synthetic modes.
-  max_wait:
-    "1": 500
-    "2": 500
-  setup:
-    "1": 34.32
-    "2": 34.32
-    "3": 34.32
-  cleanup:
-    "1": 16.82
-    "2": 16.82
-    "3": 16.82
-
-jobs:
-  types:
-    "1": 1
-    "2": 1
-    "3": 1
-    "4": 3
-    "5": 3
-    "6": 3
-    "7": 2
-    "8": 2
-    "9": 1
-    "10": 1
-    "11": 2
-    "12": 2
-    "13": 3
-    "14": 1
-    "15": 3
-
-resources:
-  num_pabellones: 12
-
-personnel:
-  num_anesthesiologists: 6
-  num_surgeons: 6
+    csv: results/elective/csv
+    plots: results/elective/plots
 
 algorithms:
   alpha: 1.0e-6
-  beta: 0.7
+  beta: 0.5
   gamma: 1.4
   delta: 100.0
   ga:
     enabled: true
-    population_size: 5
     max_generations: 5
+    population_size: 5
     crossover_probability: 0.8
     mutation_probability: 0.3
     elitism_count: 1
   dpso:
     enabled: true
-    swarm_size: 5
     max_iterations: 5
+    swarm_size: 5
     w: 0.7
     c1: 1.5
     c2: 1.5
-    vel_high: 4.0
     vel_low: -4.0
+    vel_high: 4.0
   sboa:
     enabled: true
-    population_size: 5
     max_iterations: 5
+    population_size: 5
     lower_bound: -5.0
     upper_bound: 5.0
   dmshoa:
     enabled: true
-    population_size: 5
     max_iterations: 5
+    population_size: 5
     k: 0.3
     lower_bound: -5.0
     upper_bound: 5.0
+  mh:
+    enabled: false
+    max_iterations: 3
+    population_size: 3
+logging:
+  verbose_mode: false

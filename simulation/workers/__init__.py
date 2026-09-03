@@ -1,6 +1,5 @@
-"""
-Worker modules for parallel simulation execution.
-"""
-from .elective_worker import ElectiveWorker
+"""Workers used by the instance-driven runtime."""
 
-__all__ = ['ElectiveWorker']
+from .elective_worker import InstanceWorker
+
+__all__ = ["InstanceWorker"]

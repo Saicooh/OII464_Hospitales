@@ -1,0 +1,374 @@
+schema_version: 1
+catalog_status: partial
+instance_count: 37
+instances:
+  - instance_id: HOSP-DIDACT-03-01
+    file: didactic/HOSP-DIDACT-03-01.yaml
+    provenance: {kind: public pedagogical, source: course-designed synthetic profile}
+    generation: {method: fixed pedagogical materialization, version: didactic-v1, seed: 301, profile: {duration_distributions: positive-support fixed values, dependence: deterministic operation-specific timing pattern, assignment: explicit qualified subsets, room_eligibility: all declared rooms, congestion_bands: intentionally varied by instance size, replica_policy: one didactic instance per size}}
+    dimensions: {jobs: 3, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2], personnel: {'1': [AN-1, AN-2, AN-3], '2': [SU-1, SU-2, SU-3, SU-4]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: instance-schema, version: '1', outcome: passed}
+    digest: 612f77fbad6d14029b7e15aacd14333f56af4914c67ec8c00d9d3e6f787a4d28
+  - instance_id: HOSP-DIDACT-05-01
+    file: didactic/HOSP-DIDACT-05-01.yaml
+    provenance: {kind: public pedagogical, source: course-designed synthetic profile}
+    generation: {method: fixed pedagogical materialization, version: didactic-v1, seed: 501, profile: {duration_distributions: positive-support fixed values, dependence: deterministic operation-specific timing pattern, assignment: explicit qualified subsets, room_eligibility: all declared rooms, congestion_bands: intentionally varied by instance size, replica_policy: one didactic instance per size}}
+    dimensions: {jobs: 5, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3], personnel: {'1': [AN-1, AN-2, AN-3], '2': [SU-1, SU-2, SU-3, SU-4, SU-5]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: instance-schema, version: '1', outcome: passed}
+    digest: ef386c09c3f5458cab006e8ecf0e4f5f7d8444696b9005438ec61d705b59c8e2
+  - instance_id: HOSP-DIDACT-08-01
+    file: didactic/HOSP-DIDACT-08-01.yaml
+    provenance: {kind: public pedagogical, source: course-designed synthetic profile}
+    generation: {method: fixed pedagogical materialization, version: didactic-v1, seed: 801, profile: {duration_distributions: positive-support fixed values, dependence: deterministic operation-specific timing pattern, assignment: explicit qualified subsets, room_eligibility: all declared rooms, congestion_bands: intentionally varied by instance size, replica_policy: one didactic instance per size}}
+    dimensions: {jobs: 8, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4], personnel: {'1': [AN-1, AN-2, AN-3, AN-4], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: instance-schema, version: '1', outcome: passed}
+    digest: ab3735ff8bc7d9620f739499788de7e2c336202fb686764b37fa0ca6a153a694
+  - instance_id: HOSP-DIDACT-10-01
+    file: didactic/HOSP-DIDACT-10-01.yaml
+    provenance: {kind: public pedagogical, source: course-designed synthetic profile}
+    generation: {method: fixed pedagogical materialization, version: didactic-v1, seed: 1001, profile: {duration_distributions: positive-support fixed values, dependence: deterministic operation-specific timing pattern, assignment: explicit qualified subsets, room_eligibility: all declared rooms, congestion_bands: intentionally varied by instance size, replica_policy: one didactic instance per size}}
+    dimensions: {jobs: 10, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5], personnel: {'1': [AN-1, AN-2, AN-3, AN-4], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: instance-schema, version: '1', outcome: passed}
+    digest: 401af56ee294776955ff842ffb0d0a730b7ca7e6c515fa145aeb34efe06ae7d6
+  - instance_id: HOSP-STD-15-01
+    file: standard/HOSP-STD-15-01.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 1501, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: balanced load with moderate wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 15, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.5, p50: 17.5, p90: 42.0}, dispersion: {coefficient_of_variation: 0.48}, rank_correlations: {anesthesia_surgery: 0.79}, workload_capacity_ratios: {rooms: 0.72, anesthetists: 0.54, surgeons: 0.46}}}
+    digest: 961d3d2c3eef83296e641ca556961d3dcd1c5322dd32e37e43d498596b46e264
+  - instance_id: HOSP-STD-15-02
+    file: standard/HOSP-STD-15-02.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 1502, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: surgery-heavy load with tighter wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 15, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.0, p50: 20.0, p90: 49.0}, dispersion: {coefficient_of_variation: 0.52}, rank_correlations: {anesthesia_surgery: 0.86}, workload_capacity_ratios: {rooms: 0.84, anesthetists: 0.63, surgeons: 0.63}}}
+    digest: f315107711baef80dca74f77944f3ddf1643e5a1d35edd4016bbea6bbc495e03
+  - instance_id: HOSP-STD-15-03
+    file: standard/HOSP-STD-15-03.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 1503, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: mixed case load with wider wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 15, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 7.5, p50: 18.0, p90: 47.0}, dispersion: {coefficient_of_variation: 0.58}, rank_correlations: {anesthesia_surgery: 0.83}, workload_capacity_ratios: {rooms: 0.69, anesthetists: 0.43, surgeons: 0.35}}}
+    digest: 1c59e8d211dafb58fed0e0f6cb6acc4ce21b77aa0b6c3ea02ea5f28743328d4b
+  - instance_id: HOSP-STD-20-01
+    file: standard/HOSP-STD-20-01.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 2001, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: balanced throughput with moderate wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 20, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.5, p50: 19.0, p90: 46.0}, dispersion: {coefficient_of_variation: 0.51}, rank_correlations: {anesthesia_surgery: 0.81}, workload_capacity_ratios: {rooms: 0.78, anesthetists: 0.6, surgeons: 0.48}}}
+    digest: 4020267125f32fb837f503d4f8454f15a1c2eaaa040c81268ca390cc0cb3914b
+  - instance_id: HOSP-STD-20-02
+    file: standard/HOSP-STD-20-02.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 2002, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: surgery-intensive throughput with tight wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 20, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.5, p50: 23.0, p90: 54.0}, dispersion: {coefficient_of_variation: 0.55}, rank_correlations: {anesthesia_surgery: 0.87}, workload_capacity_ratios: {rooms: 0.89, anesthetists: 0.68, surgeons: 0.61}}}
+    digest: f4d7eb68c49ca8471778e951b75929acfd33ba8efe201fc46198b6734b219e6c
+  - instance_id: HOSP-STD-20-03
+    file: standard/HOSP-STD-20-03.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 2003, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: mixed-duration throughput with wider wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 20, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 7.5, p50: 20.0, p90: 50.0}, dispersion: {coefficient_of_variation: 0.6}, rank_correlations: {anesthesia_surgery: 0.84}, workload_capacity_ratios: {rooms: 0.73, anesthetists: 0.49, surgeons: 0.38}}}
+    digest: cf8acc0cbb3e3f835da745a06eee3784454065eef9e3b7278add7d92128fa270
+  - instance_id: HOSP-STD-25-01
+    file: standard/HOSP-STD-25-01.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 2501, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: balanced capacity with moderate wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 25, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.0, p50: 21.0, p90: 49.0}, dispersion: {coefficient_of_variation: 0.53}, rank_correlations: {anesthesia_surgery: 0.82}, workload_capacity_ratios: {rooms: 0.82, anesthetists: 0.65, surgeons: 0.45}}}
+    digest: 0ae95d5e511979da55ccca585a1eb6136928c1e313c5f44fbda4766889092b8e
+  - instance_id: HOSP-STD-25-02
+    file: standard/HOSP-STD-25-02.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 2502, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: surgery-intensive capacity with tight wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 25, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.5, p50: 25.0, p90: 58.0}, dispersion: {coefficient_of_variation: 0.57}, rank_correlations: {anesthesia_surgery: 0.88}, workload_capacity_ratios: {rooms: 0.92, anesthetists: 0.74, surgeons: 0.55}}}
+    digest: 111e3dbf700a52182fb348e3992e1ca35fa16ea56d3fdab97ee16fdc5a83af70
+  - instance_id: HOSP-STD-25-03
+    file: standard/HOSP-STD-25-03.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 2503, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: mixed-duration capacity with wider wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 25, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.0, p50: 21.0, p90: 53.0}, dispersion: {coefficient_of_variation: 0.62}, rank_correlations: {anesthesia_surgery: 0.85}, workload_capacity_ratios: {rooms: 0.76, anesthetists: 0.53, surgeons: 0.36}}}
+    digest: 2d6e6d85cbec6219069261e929485a64f4ffcd10e2507b980fb2121f19a54ec7
+  - instance_id: HOSP-STD-30-01
+    file: standard/HOSP-STD-30-01.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 3001, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: balanced scale with moderate wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 30, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.5, p50: 22.0, p90: 51.0}, dispersion: {coefficient_of_variation: 0.54}, rank_correlations: {anesthesia_surgery: 0.83}, workload_capacity_ratios: {rooms: 0.85, anesthetists: 0.69, surgeons: 0.43}}}
+    digest: 2f04176e649b56a7972631b0814e3932667b13b8da7df0c9bd837592c1400685
+  - instance_id: HOSP-STD-30-02
+    file: standard/HOSP-STD-30-02.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 3002, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: surgery-constrained peak with tight wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 30, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.0, p50: 27.0, p90: 62.0}, dispersion: {coefficient_of_variation: 0.59}, rank_correlations: {anesthesia_surgery: 0.89}, workload_capacity_ratios: {rooms: 0.95, anesthetists: 0.78, surgeons: 0.52}}}
+    digest: ae1dbf281b4091bae360735878ddd7e10635385b4d42b9720ddcbcdc944e2c38
+  - instance_id: HOSP-STD-30-03
+    file: standard/HOSP-STD-30-03.yaml
+    provenance: {kind: public synthetic, source: course-designed standard profile}
+    generation: {method: fixed Gaussian-copula materialization, version: standard-copula-v1, seed: 3003, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: mixed-duration resilience with wide wait limits, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 30, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: standard-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.5, p50: 23.0, p90: 56.0}, dispersion: {coefficient_of_variation: 0.64}, rank_correlations: {anesthesia_surgery: 0.86}, workload_capacity_ratios: {rooms: 0.79, anesthetists: 0.58, surgeons: 0.36}}}
+    digest: 5c14c469ed592eb550dfc07626cff1cb866a9c8062b0ed4fd25d9fedcbdb1808
+  - instance_id: HOSP-12R-15-01
+    file: hospital_12rooms/HOSP-12R-15-01.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 121501, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room balanced teaching load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 15, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.0, p50: 20.0, p90: 46.0}, dispersion: {coefficient_of_variation: 0.5}, rank_correlations: {anesthesia_surgery: 0.8}, workload_capacity_ratios: {rooms: 0.58, anesthetists: 0.39, surgeons: 0.3}}}
+    digest: c9a3fe0727620927a786a7d0f9bc85a01bb368d4af9dfdc2cd9d868167ee8dc2
+  - instance_id: HOSP-12R-15-02
+    file: hospital_12rooms/HOSP-12R-15-02.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 121502, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room surgery-intensive teaching load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 15, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.5, p50: 24.0, p90: 58.0}, dispersion: {coefficient_of_variation: 0.57}, rank_correlations: {anesthesia_surgery: 0.88}, workload_capacity_ratios: {rooms: 0.71, anesthetists: 0.45, surgeons: 0.38}}}
+    digest: dcf9f4332d06128fcf69ab726739e9a138ab65757e506e3a3a0b403f47368bc8
+  - instance_id: HOSP-12R-15-03
+    file: hospital_12rooms/HOSP-12R-15-03.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 121503, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room mixed-duration teaching load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 15, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 7.5, p50: 21.0, p90: 54.0}, dispersion: {coefficient_of_variation: 0.63}, rank_correlations: {anesthesia_surgery: 0.84}, workload_capacity_ratios: {rooms: 0.49, anesthetists: 0.34, surgeons: 0.26}}}
+    digest: ae01a001e0b9f765e49317464c2a151fb6d11899af1d85c064f9befed2dbd034
+  - instance_id: HOSP-12R-20-01
+    file: hospital_12rooms/HOSP-12R-20-01.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 122001, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room balanced twenty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 20, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.5, p50: 20.0, p90: 48.0}, dispersion: {coefficient_of_variation: 0.52}, rank_correlations: {anesthesia_surgery: 0.82}, workload_capacity_ratios: {rooms: 0.64, anesthetists: 0.46, surgeons: 0.31}}}
+    digest: 63dc85069f3bd27fa244a807cd01877e8cdbc46d7576602d414ea3816c75f4c4
+  - instance_id: HOSP-12R-20-02
+    file: hospital_12rooms/HOSP-12R-20-02.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 122002, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room surgery-intensive twenty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 20, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.0, p50: 24.0, p90: 58.0}, dispersion: {coefficient_of_variation: 0.58}, rank_correlations: {anesthesia_surgery: 0.89}, workload_capacity_ratios: {rooms: 0.78, anesthetists: 0.54, surgeons: 0.38}}}
+    digest: 1c9d08b4a131dda436b5b6336057aaf930ae7d6c7ddc5d5ba4fb4e0248add40c
+  - instance_id: HOSP-12R-20-03
+    file: hospital_12rooms/HOSP-12R-20-03.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 122003, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room mixed-duration twenty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 20, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.0, p50: 21.0, p90: 53.0}, dispersion: {coefficient_of_variation: 0.65}, rank_correlations: {anesthesia_surgery: 0.85}, workload_capacity_ratios: {rooms: 0.56, anesthetists: 0.4, surgeons: 0.28}}}
+    digest: cf0560d2d3259c752c90c671313ff3b3ec3856618e34b763fc8b1c1f7aed8b23
+  - instance_id: HOSP-12R-25-01
+    file: hospital_12rooms/HOSP-12R-25-01.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 122501, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room balanced twenty-five-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 25, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.0, p50: 22.0, p90: 50.0}, dispersion: {coefficient_of_variation: 0.54}, rank_correlations: {anesthesia_surgery: 0.83}, workload_capacity_ratios: {rooms: 0.69, anesthetists: 0.51, surgeons: 0.32}}}
+    digest: 8d3ac1babb71ed42fa8807f4bc0c5ff6e8f4e08c133a1829a09781930098b810
+  - instance_id: HOSP-12R-25-02
+    file: hospital_12rooms/HOSP-12R-25-02.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 122502, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room surgery-intensive twenty-five-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 25, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.5, p50: 26.0, p90: 61.0}, dispersion: {coefficient_of_variation: 0.6}, rank_correlations: {anesthesia_surgery: 0.9}, workload_capacity_ratios: {rooms: 0.84, anesthetists: 0.61, surgeons: 0.39}}}
+    digest: a769f26651a981b6ee6392d5ce82a500396490de89d70e8c95cced203d4aa6d7
+  - instance_id: HOSP-12R-25-03
+    file: hospital_12rooms/HOSP-12R-25-03.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 122503, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room mixed-duration twenty-five-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 25, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.0, p50: 22.0, p90: 56.0}, dispersion: {coefficient_of_variation: 0.67}, rank_correlations: {anesthesia_surgery: 0.86}, workload_capacity_ratios: {rooms: 0.61, anesthetists: 0.46, surgeons: 0.29}}}
+    digest: be174f888e3abd728cbe046e615c3b603b72e1695c382a357bb23f75ce98629f
+  - instance_id: HOSP-12R-30-01
+    file: hospital_12rooms/HOSP-12R-30-01.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 123001, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room balanced thirty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 30, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.5, p50: 23.0, p90: 53.0}, dispersion: {coefficient_of_variation: 0.56}, rank_correlations: {anesthesia_surgery: 0.84}, workload_capacity_ratios: {rooms: 0.74, anesthetists: 0.56, surgeons: 0.32}}}
+    digest: 9b21cb7ddfcf1b5aa57a239c2c3088f0638b2a6c4ff782e64ed90b917e47fd14
+  - instance_id: HOSP-12R-30-02
+    file: hospital_12rooms/HOSP-12R-30-02.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 123002, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room surgery-intensive thirty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 30, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 10.0, p50: 28.0, p90: 65.0}, dispersion: {coefficient_of_variation: 0.61}, rank_correlations: {anesthesia_surgery: 0.91}, workload_capacity_ratios: {rooms: 0.89, anesthetists: 0.67, surgeons: 0.37}}}
+    digest: c38951d7f55ae8aef6c321cc49eea638fb873940255b6ddbe882fbdf978acae0
+  - instance_id: HOSP-12R-30-03
+    file: hospital_12rooms/HOSP-12R-30-03.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 123003, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room mixed-duration thirty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 30, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10, AN-11], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23, SU-24]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 8.5, p50: 24.0, p90: 60.0}, dispersion: {coefficient_of_variation: 0.69}, rank_correlations: {anesthesia_surgery: 0.87}, workload_capacity_ratios: {rooms: 0.66, anesthetists: 0.51, surgeons: 0.29}}}
+    digest: 198955d077d18cd2dda47531d07a1768c9e73b237b07d8a40f5a8f12366487e7
+  - instance_id: HOSP-12R-40-01
+    file: hospital_12rooms/HOSP-12R-40-01.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 124001, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room balanced forty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 40, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10, AN-11], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23, SU-24, SU-25]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 10.0, p50: 24.0, p90: 55.0}, dispersion: {coefficient_of_variation: 0.57}, rank_correlations: {anesthesia_surgery: 0.85}, workload_capacity_ratios: {rooms: 0.79, anesthetists: 0.61, surgeons: 0.33}}}
+    digest: 6f1eeaaf74b1fe61027e67f9b4ef976ac370a838e9b97ac64c7dab3ccde5977e
+  - instance_id: HOSP-12R-40-02
+    file: hospital_12rooms/HOSP-12R-40-02.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 124002, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room surgery-intensive forty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 40, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 10.5, p50: 29.5, p90: 68.0}, dispersion: {coefficient_of_variation: 0.62}, rank_correlations: {anesthesia_surgery: 0.92}, workload_capacity_ratios: {rooms: 0.94, anesthetists: 0.72, surgeons: 0.38}}}
+    digest: 243a65ec04c1d24075dd785d4dbdbd518a93a6b05b718dd4988aa9e742681819
+  - instance_id: HOSP-12R-40-03
+    file: hospital_12rooms/HOSP-12R-40-03.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 124003, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room mixed-duration forty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 40, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10, AN-11], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23, SU-24, SU-25, SU-26, SU-27]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.0, p50: 25.0, p90: 62.0}, dispersion: {coefficient_of_variation: 0.7}, rank_correlations: {anesthesia_surgery: 0.88}, workload_capacity_ratios: {rooms: 0.71, anesthetists: 0.61, surgeons: 0.3}}}
+    digest: 3952eb2fb038ad6b455528df57fe6b914f5dc3ea6f323dee9dff8668f57314ce
+  - instance_id: HOSP-12R-50-01
+    file: hospital_12rooms/HOSP-12R-50-01.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 125001, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room balanced fifty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 50, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10, AN-11], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23, SU-24, SU-25, SU-26, SU-27]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 10.5, p50: 25.0, p90: 57.0}, dispersion: {coefficient_of_variation: 0.58}, rank_correlations: {anesthesia_surgery: 0.86}, workload_capacity_ratios: {rooms: 0.84, anesthetists: 0.65, surgeons: 0.32}}}
+    digest: 5576b9dfd9f606e8710e272d5852999f5cc9035a9dc37684e63d7ce40db515a6
+  - instance_id: HOSP-12R-50-02
+    file: hospital_12rooms/HOSP-12R-50-02.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 125002, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room surgery-intensive fifty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 50, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23, SU-24, SU-25]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 11.0, p50: 30.5, p90: 70.0}, dispersion: {coefficient_of_variation: 0.63}, rank_correlations: {anesthesia_surgery: 0.93}, workload_capacity_ratios: {rooms: 0.98, anesthetists: 0.75, surgeons: 0.36}}}
+    digest: ec69043554d87f4a8704249db6c998666565ed391a717f3a5bafa22c227dc7ae
+  - instance_id: HOSP-12R-50-03
+    file: hospital_12rooms/HOSP-12R-50-03.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 125003, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room mixed-duration fifty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 50, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10, AN-11], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23, SU-24, SU-25, SU-26, SU-27, SU-28, SU-29]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.5, p50: 26.0, p90: 64.0}, dispersion: {coefficient_of_variation: 0.71}, rank_correlations: {anesthesia_surgery: 0.89}, workload_capacity_ratios: {rooms: 0.76, anesthetists: 0.65, surgeons: 0.3}}}
+    digest: 4fa310f19084b489382a80f64abe04cdaa27da0a51c026476bd273383fb36835
+  - instance_id: HOSP-12R-60-01
+    file: hospital_12rooms/HOSP-12R-60-01.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 126001, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room balanced sixty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 60, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10, AN-11], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23, SU-24, SU-25, SU-26, SU-27]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 10.0, p50: 26.0, p90: 61.0}, dispersion: {coefficient_of_variation: 0.59}, rank_correlations: {anesthesia_surgery: 0.87}, workload_capacity_ratios: {rooms: 0.91, anesthetists: 0.7, surgeons: 0.34}}}
+    digest: 3ab2c1ed1c0607b5ed8e5403dae81970fca0d046c6052c9d54753f1d73ea3a93
+  - instance_id: HOSP-12R-60-02
+    file: hospital_12rooms/HOSP-12R-60-02.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 126002, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room surgery-intensive sixty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 60, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23, SU-24, SU-25]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 11.0, p50: 31.0, p90: 74.0}, dispersion: {coefficient_of_variation: 0.64}, rank_correlations: {anesthesia_surgery: 0.94}, workload_capacity_ratios: {rooms: 1.08, anesthetists: 0.82, surgeons: 0.39}}}
+    digest: fb22d3a047b4ef1de2165a0480d64964c98d7b734df99d130ee33ead80e9b570
+  - instance_id: HOSP-12R-60-03
+    file: hospital_12rooms/HOSP-12R-60-03.yaml
+    provenance: {kind: public synthetic, source: course-designed twelve-room profile}
+    generation: {method: fixed Gaussian-copula materialization, version: hospital-12rooms-copula-v1, seed: 126003, profile: {duration_distributions: 'versioned lognormal marginals for setup, transition, anesthesia, surgery, and cleanup', dependence: Gaussian copula with fixed rank-correlation matrix, assignment: seeded qualified-person subsets, room_eligibility: all declared rooms, congestion_bands: twelve-room mixed-duration sixty-job load, replica_policy: three independent minimum instances; pilot CI governs pair expansion}}
+    dimensions: {jobs: 60, operations_per_job: 2}
+    resources: {rooms: [OR-1, OR-2, OR-3, OR-4, OR-5, OR-6, OR-7, OR-8, OR-9, OR-10, OR-11, OR-12], personnel: {'1': [AN-1, AN-2, AN-3, AN-4, AN-5, AN-6, AN-7, AN-8, AN-9, AN-10, AN-11], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6, SU-7, SU-8, SU-9, SU-10, SU-11, SU-12, SU-13, SU-14, SU-15, SU-16, SU-17, SU-18, SU-19, SU-20, SU-21, SU-22, SU-23, SU-24, SU-25, SU-26, SU-27, SU-28, SU-29]}}
+    classification: fully synthetic instance
+    bounds: {status: pending, method_version: course-lb-v1}
+    validation: {method: structural-statistical catalog admission, version: hospital-12rooms-validation-v1, outcome: passed, evidence: {duration_quantiles: {p10: 9.0, p50: 27.0, p90: 69.0}, dispersion: {coefficient_of_variation: 0.72}, rank_correlations: {anesthesia_surgery: 0.9}, workload_capacity_ratios: {rooms: 0.83, anesthetists: 0.72, surgeons: 0.33}}}
+    digest: 73a1814961d7b51539e4ef3e2cfc4b39049325c57ddeb8516c62df0478c8f5a4

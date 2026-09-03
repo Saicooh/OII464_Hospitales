@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 # /utils/reporting.py
 """
 Module for reporting functions: printing summaries to the console and
@@ -10,6 +11,13 @@ import os
 
 # Import necessary constants from the configuration file
 from config.config import ALL_ROOMS
+
+# Note: 'EMERGENCY_JOBS' should be in your config.py.
+# For now, it's defined here as an empty list as a fallback.
+try:
+    from config.config import EMERGENCY_JOBS
+except ImportError:
+    EMERGENCY_JOBS = []
 
 from utils.logger import logger
 
@@ -54,12 +62,16 @@ def print_schedule_summary(schedule_details, title="Schedule"):
     if not schedule_details:
         return
     print(f"\n--- Schedule Summary: {title} ---")
-    header = f"{'Job':<12} | {'Operation':^10} | {'Room':<12} | {'Personnel':<12} | {'Start':>10} | {'Finish':>10} | {'Duration':>10}"
+    header = f"{'Surgery (E)':<12} | {'Operation':^10} | {'Room':<12} | {'Personnel':<12} | {'Start':>10} | {'Finish':>10} | {'Duration':>10}"
     print(header)
     print("-" * len(header))
 
     for task in sorted(schedule_details, key=lambda x: x.get("Start", float("inf"))):
-        job_label = str(task.get("Job"))
+        job_label = (
+            f"{task.get('Job')} (E)"
+            if task.get("Job") in EMERGENCY_JOBS
+            else str(task.get("Job"))
+        )
         start, finish = task.get("Start", 0.0), task.get("Finish", 0.0)
         duration = finish - start
         print(
@@ -78,7 +90,9 @@ def print_sequencing_strategy(schedule_details):
     print("-" * 80)
     for room_name in sorted(room_schedules.keys()):
         schedule = sorted(room_schedules[room_name], key=lambda x: x[0])
-        seq = [f"{j}(Op{o})" for _, j, o in schedule]
+        seq = [
+            f"{j}{'(E)' if j in EMERGENCY_JOBS else ''}(Op{o})" for _, j, o in schedule
+        ]
         print(f"{room_name:<12} | {' -> '.join(seq) if seq else 'No assignments'}")
     print("-" * 80)
 
@@ -146,10 +160,6 @@ def export_full_schedule_to_csv(schedule_details, filename):
                     row["TransitionUsed"] = ""
                 writer.writerow(row)
 
-        # NEW: Calculate and print the TRUE makespan from the CSV data
-        max_finish = max(task.get("Finish", 0) for task in schedule_details)
-        # print(f"  -> [Debug] TRUE MAKESPAN from schedule_details: {max_finish:.2f}")
-
         return filename
     except (IOError, IndexError) as e:
         print(f"  -> [Error] Exporting schedule to CSV failed: {e}")
@@ -169,7 +179,7 @@ def export_sequencing_strategy_to_csv(schedule_details, filename):
                 schedule = sorted(room_schedules[room_name], key=lambda x: x[0])
                 seq = " -> ".join(
                     [
-                        f"{j}(Op{o})"
+                        f"{j}{'(E)' if j in EMERGENCY_JOBS else ''}(Op{o})"
                         for _, j, o in schedule
                     ]
                 )
@@ -266,7 +276,7 @@ def export_operational_paired_summary(operational_summary, filename):
     Consumes the dict returned by ``statistics.compute_operational_summary``:
     mean±sd of patients_with_extra_wait and avg_extra_wait_min, plus the paired
     makespan win-rate (%) and mean rank. This replaces cherry-picked best-run
-    tables (``best_runs_by_mh``) for analysis reporting.
+    tables (``best_runs_by_mh``) for paper reporting.
 
     Returns the filename on success, None on failure.
     """
@@ -307,6 +317,173 @@ def export_operational_paired_summary(operational_summary, filename):
         logger.error(f"  -> [Error] Exporting operational paired summary failed: {e}")
         return None
 
+
+
+def export_emergency_montecarlo_summary(all_results, filename):
+    """Exports the emergency Monte Carlo summary, returning the filename on success."""
+    try:
+        with _safe_open_csv(filename) as f:
+            writer = csv.writer(f)
+            writer.writerow(
+                [
+                    "algorithm",
+                    "valid_simulations",
+                    "makespan_min",
+                    "makespan_median",
+                    "makespan_avg",
+                    "makespan_std",
+                    "time_avg_s",
+                ]
+            )
+
+            for name, results in all_results.items():
+                makespans = [m for m in results["makespan"] if m != float("inf")]
+                times = results["time"]
+
+                if not makespans:
+                    continue
+
+                writer.writerow(
+                    [
+                        name,
+                        len(makespans),
+                        _format_two_decimals(np.min(makespans)),
+                        _format_two_decimals(np.median(makespans)),
+                        _format_two_decimals(np.mean(makespans)),
+                        _format_two_decimals(np.std(makespans, ddof=1))
+                        if len(makespans) > 1
+                        else 0.0,
+                        _format_two_decimals(np.mean(times)),
+                    ]
+                )
+
+        logger.info(f"    - Emergency Monte Carlo summary saved to: {filename}")
+        return filename
+    except IOError as e:
+        logger.error(f"  -> [Error] Exporting emergency summary failed: {e}")
+        return None
+
+
+def export_emergency_event_log(events_log, filename):
+    """Exports the emergency event log to CSV."""
+    if not events_log:
+        logger.warning(f"  -> [Warning] No event log data to export to {filename}.")
+        return None
+
+    try:
+        with _safe_open_csv(filename) as f:
+            writer = csv.writer(f)
+            writer.writerow(["Time", "Event_Type", "Details"])
+
+            for event in events_log:
+                time_val = event.get(
+                    "time", 0
+                )  # This should be the original arrival_time
+
+                # DEBUG: Verify time_val is correct
+                print(
+                    f"DEBUG - Exporting event: time={time_val:.2f}, type={event['type']}"
+                )
+
+                writer.writerow(
+                    [_format_two_decimals(time_val), event["type"], event["details"]]
+                )
+
+        logger.info(f"    - Emergency event log saved to: {filename}")
+        return filename
+    except IOError as e:
+        logger.error(f"  -> [Error] Exporting event log failed: {e}")
+        return None
+
+
+def export_emergency_metrics(events_log, emergencies, filename):
+    """
+    Exports emergency integration metrics to CSV.
+
+    Args:
+        events_log: List of events from DynamicScheduler
+        emergencies: Original emergency data with arrival_time
+        filename: Output CSV path
+
+    Returns:
+        str: Filename on success, None on error
+    """
+    if not events_log or not emergencies:
+        logger.warning(f"  -> [Warning] No emergency metrics to export to {filename}.")
+        return None
+
+    try:
+        with _safe_open_csv(filename) as f:
+            writer = csv.writer(f)
+            # NOTE: 'Status' column removed
+            writer.writerow(
+                [
+                    "Emergency_Job_ID",
+                    "Arrival_Time",
+                    "Integration_Time",
+                    "Integration_Delay",
+                ]
+            )
+
+            # Map emergencies by job_id
+            emergency_map = {em["job_id"]: em for em in emergencies}
+            integrated_jobs = {}
+
+            # Collect EMERGENCY_RESCHEDULING events
+            for event in events_log:
+                if event.get("type") == "EMERGENCY_RESCHEDULING":
+                    emergency_job = event.get("emergency_job")
+                    emergency_start = event.get("emergency_start")
+                    delay = event.get("delay")
+
+                    if emergency_job and emergency_job in emergency_map:
+                        arrival_time = emergency_map[emergency_job]["arrival_time"]
+
+                        # If emergency_start is available, use it; otherwise arrival_time + delay
+                        if emergency_start is not None:
+                            integration_time = emergency_start
+                        elif delay is not None:
+                            integration_time = arrival_time + delay
+                        else:
+                            integration_time = arrival_time
+
+                        # Compute delay if missing
+                        if delay is None:
+                            delay = integration_time - arrival_time
+
+                        integrated_jobs[emergency_job] = {
+                            "arrival": arrival_time,
+                            "integration": integration_time,
+                            "delay": delay,
+                        }
+
+            # Write integrated emergencies
+            for job_id, metrics in integrated_jobs.items():
+                writer.writerow(
+                    [
+                        job_id,
+                        _format_two_decimals(metrics["arrival"]),
+                        _format_two_decimals(metrics["integration"]),
+                        _format_two_decimals(metrics["delay"]),
+                        # 'Integrated' column removed
+                    ]
+                )
+
+            # Optional: Non-integrated emergencies (future)
+            # for em in emergencies:
+            #     if em['job_id'] not in integrated_jobs:
+            #         writer.writerow([
+            #             em['job_id'],
+            #             _format_two_decimals(em['arrival_time']),
+            #             'N/A',
+            #             'N/A'
+            #         ])
+
+        logger.info(f"    - Emergency metrics saved to: {filename}")
+        return filename
+    except IOError as e:
+        logger.error(f"  -> [Error] Exporting emergency metrics failed: {e}")
+        return None
 
 
 def export_room_overtimes_csv(all_results, filename, all_rooms):

@@ -1,0 +1,32 @@
+schema_version: 1
+instance_id: HOSP-DIDACT-08-01
+family: didactic
+classification: fully synthetic instance
+provenance: {kind: public pedagogical, source: course-designed synthetic profile}
+generation:
+  method: fixed pedagogical materialization
+  version: didactic-v1
+  seed: 801
+  profile:
+    duration_distributions: positive-support fixed values
+    dependence: deterministic operation-specific timing pattern
+    assignment: explicit qualified subsets
+    room_eligibility: all declared rooms
+    congestion_bands: intentionally varied by instance size
+    replica_policy: one didactic instance per size
+dimensions: {jobs: 8, operations_per_job: 2}
+resources:
+  rooms: [OR-1, OR-2, OR-3, OR-4]
+  personnel: {'1': [AN-1, AN-2, AN-3, AN-4], '2': [SU-1, SU-2, SU-3, SU-4, SU-5, SU-6]}
+jobs:
+  - {id: 1, label: Didactic case 1, operations: [{id: 1, duration: 8.5, setup: 1.0, transition: 1.5, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [AN-1, AN-2]}, {id: 2, duration: 19.0, setup: 0.0, transition: 0.0, cleanup: 2.0, max_wait: 24.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [SU-1, SU-2]}]}
+  - {id: 2, label: Didactic case 2, operations: [{id: 1, duration: 10.0, setup: 1.5, transition: 1.0, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [AN-2, AN-3]}, {id: 2, duration: 23.0, setup: 0.0, transition: 0.0, cleanup: 2.5, max_wait: 28.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [SU-2, SU-3]}]}
+  - {id: 3, label: Didactic case 3, operations: [{id: 1, duration: 12.5, setup: 2.0, transition: 1.5, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [AN-3, AN-4]}, {id: 2, duration: 16.0, setup: 0.0, transition: 0.0, cleanup: 3.0, max_wait: 20.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [SU-3, SU-4]}]}
+  - {id: 4, label: Didactic case 4, operations: [{id: 1, duration: 7.0, setup: 1.0, transition: 2.0, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [AN-1, AN-2]}, {id: 2, duration: 26.0, setup: 0.0, transition: 0.0, cleanup: 2.0, max_wait: 31.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [SU-1, SU-2]}]}
+  - {id: 5, label: Didactic case 5, operations: [{id: 1, duration: 14.0, setup: 2.5, transition: 1.0, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [AN-2, AN-3]}, {id: 2, duration: 21.0, setup: 0.0, transition: 0.0, cleanup: 3.5, max_wait: 27.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [SU-2, SU-3]}]}
+  - {id: 6, label: Didactic case 6, operations: [{id: 1, duration: 9.5, setup: 1.5, transition: 2.5, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [AN-1, AN-3]}, {id: 2, duration: 29.0, setup: 0.0, transition: 0.0, cleanup: 2.5, max_wait: 34.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [SU-1, SU-3]}]}
+  - {id: 7, label: Didactic case 7, operations: [{id: 1, duration: 15.0, setup: 3.0, transition: 1.0, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [AN-1, AN-3]}, {id: 2, duration: 18.5, setup: 0.0, transition: 0.0, cleanup: 4.0, max_wait: 25.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [SU-2, SU-3]}]}
+  - {id: 8, label: Didactic case 8, operations: [{id: 1, duration: 11.5, setup: 2.0, transition: 2.0, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [AN-2, AN-4]}, {id: 2, duration: 25.0, setup: 0.0, transition: 0.0, cleanup: 3.0, max_wait: 30.0, eligible_rooms: [OR-1, OR-2, OR-3, OR-4], eligible_personnel: [SU-3, SU-4]}]}
+bounds: {status: pending, method_version: course-lb-v1}
+validation: {method: instance-schema, version: '1', outcome: passed}
+digest: ab3735ff8bc7d9620f739499788de7e2c336202fb686764b37fa0ca6a153a694

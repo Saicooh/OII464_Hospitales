@@ -1,0 +1,27 @@
+schema_version: 1
+instance_id: HOSP-DIDACT-03-01
+family: didactic
+classification: fully synthetic instance
+provenance: {kind: public pedagogical, source: course-designed synthetic profile}
+generation:
+  method: fixed pedagogical materialization
+  version: didactic-v1
+  seed: 301
+  profile:
+    duration_distributions: positive-support fixed values
+    dependence: deterministic operation-specific timing pattern
+    assignment: explicit qualified subsets
+    room_eligibility: all declared rooms
+    congestion_bands: intentionally varied by instance size
+    replica_policy: one didactic instance per size
+dimensions: {jobs: 3, operations_per_job: 2}
+resources:
+  rooms: [OR-1, OR-2]
+  personnel: {'1': [AN-1, AN-2, AN-3], '2': [SU-1, SU-2, SU-3, SU-4]}
+jobs:
+  - {id: 1, label: Didactic case 1, operations: [{id: 1, duration: 8.0, setup: 1.0, transition: 2.0, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2], eligible_personnel: [AN-1, AN-2]}, {id: 2, duration: 18.0, setup: 0.0, transition: 0.0, cleanup: 2.0, max_wait: 25.0, eligible_rooms: [OR-1, OR-2], eligible_personnel: [SU-1, SU-2]}]}
+  - {id: 2, label: Didactic case 2, operations: [{id: 1, duration: 10.0, setup: 1.5, transition: 1.0, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2], eligible_personnel: [AN-2, AN-3]}, {id: 2, duration: 22.0, setup: 0.0, transition: 0.0, cleanup: 2.5, max_wait: 30.0, eligible_rooms: [OR-1, OR-2], eligible_personnel: [SU-2, SU-3]}]}
+  - {id: 3, label: Didactic case 3, operations: [{id: 1, duration: 12.0, setup: 2.0, transition: 1.5, cleanup: 0.0, max_wait: 0.0, eligible_rooms: [OR-1, OR-2], eligible_personnel: [AN-1, AN-2]}, {id: 2, duration: 16.0, setup: 0.0, transition: 0.0, cleanup: 3.0, max_wait: 20.0, eligible_rooms: [OR-1, OR-2], eligible_personnel: [SU-1, SU-2]}]}
+bounds: {status: pending, method_version: course-lb-v1}
+validation: {method: instance-schema, version: '1', outcome: passed}
+digest: 612f77fbad6d14029b7e15aacd14333f56af4914c67ec8c00d9d3e6f787a4d28

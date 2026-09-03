@@ -6,7 +6,6 @@ for the surgery scheduling problem.
 
 import random
 import math
-import copy
 import numpy as np
 
 # Import constants and the fitness function from our centralized modules
@@ -123,7 +122,7 @@ def discretize_bird(position_vector, job_ids, apply_balancing=True):
 # --- Main Algorithm Execution Function ---
 
 
-def run(surgeries_data, job_ids, seed, on_iteration=None):
+def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     """Executes the full SBOA cycle.
 
     Parameters
@@ -133,6 +132,22 @@ def run(surgeries_data, job_ids, seed, on_iteration=None):
         ``on_iteration(algo_step: int, best_fitness: float, combined_obj=None)``.
         Used in analysis mode. Ignored when None.
     """
+    from data.instance_model import InstanceContext
+
+    if isinstance(surgeries_data, InstanceContext):
+        from core.legacy_runner import LegacyInstanceData
+
+        globals()["PABELLONES"] = list(surgeries_data.rooms)
+        context_seed = int(job_ids) if seed is None else int(seed)
+        return run(
+            LegacyInstanceData(surgeries_data),
+            [job.job_id for job in surgeries_data.jobs],
+            context_seed,
+            on_iteration=on_iteration,
+        )
+    if job_ids is None or seed is None:
+        raise TypeError("SBOA requires surgeries_data, job_ids, and seed")
+
     random.seed(seed)
     np.random.seed(seed)
 
@@ -232,18 +247,15 @@ def run(surgeries_data, job_ids, seed, on_iteration=None):
             positions[i, :] = current_pos
 
         # Update global best and save history
-        best_iter_idx = np.argmin(fitness)
         # Compute iteration_* from new evaluations ONLY (isolated from survivors)
         valid_new_evals = [(f, p) for f, p in new_evals if f != float("inf")]
         if valid_new_evals:
             best_new_fit, best_new_pos = min(valid_new_evals, key=lambda x: x[0])
-            iter_best_value = best_new_fit
             iter_best_sol = discretize_bird(best_new_pos, job_ids)
             _, iter_makespan, _ = calculate_schedule_fitness(
                 iter_best_sol, surgeries_data, return_details=True
             )
         else:
-            iter_best_value = float("inf")
             iter_makespan = float("inf")
 
         # Update gbest from population (after greedy replacement)

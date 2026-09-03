@@ -84,7 +84,7 @@ class DiscreteParticle:
 # --- Main Algorithm Execution Function ---
 
 
-def run(surgeries_data, job_ids, seed, on_iteration=None):
+def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     """Executes the full dPSO cycle.
 
     Parameters
@@ -94,6 +94,22 @@ def run(surgeries_data, job_ids, seed, on_iteration=None):
         ``on_iteration(algo_step: int, best_fitness: float, combined_obj=None)``.
         Used in analysis mode. Ignored when None.
     """
+    from data.instance_model import InstanceContext
+
+    if isinstance(surgeries_data, InstanceContext):
+        from core.legacy_runner import LegacyInstanceData
+
+        globals()["PABELLONES"] = list(surgeries_data.rooms)
+        context_seed = int(job_ids) if seed is None else int(seed)
+        return run(
+            LegacyInstanceData(surgeries_data),
+            [job.job_id for job in surgeries_data.jobs],
+            context_seed,
+            on_iteration=on_iteration,
+        )
+    if job_ids is None or seed is None:
+        raise TypeError("dPSO requires surgeries_data, job_ids, and seed")
+
     random.seed(seed)
     np.random.seed(seed)
 
@@ -292,9 +308,9 @@ def run(surgeries_data, job_ids, seed, on_iteration=None):
             for k in indices:
                 if random.random() < prob_swap[k]:
                     if num_jobs >= 2:
-                        l = random.choice([idx for idx in range(num_jobs) if idx != k])
-                        particle.position_sequence[k], particle.position_sequence[l] = (
-                            particle.position_sequence[l],
+                        swap_idx = random.choice([idx for idx in range(num_jobs) if idx != k])
+                        particle.position_sequence[k], particle.position_sequence[swap_idx] = (
+                            particle.position_sequence[swap_idx],
                             particle.position_sequence[k],
                         )
 

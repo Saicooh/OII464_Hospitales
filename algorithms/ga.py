@@ -144,7 +144,7 @@ def mutate(individual):
 # --- Main Algorithm Execution Function ---
 
 
-def run(surgeries_data, job_ids, seed, on_iteration=None):
+def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     """Executes the full Genetic Algorithm cycle.
 
     Parameters
@@ -155,6 +155,22 @@ def run(surgeries_data, job_ids, seed, on_iteration=None):
         Used in analysis mode to collect per-iteration snapshots. Has no effect
         on the algorithm logic; ignored when None.
     """
+    from data.instance_model import InstanceContext
+
+    if isinstance(surgeries_data, InstanceContext):
+        from core.legacy_runner import LegacyInstanceData
+
+        globals()["PABELLONES"] = list(surgeries_data.rooms)
+        context_seed = int(job_ids) if seed is None else int(seed)
+        return run(
+            LegacyInstanceData(surgeries_data),
+            [job.job_id for job in surgeries_data.jobs],
+            context_seed,
+            on_iteration=on_iteration,
+        )
+    if job_ids is None or seed is None:
+        raise TypeError("GA requires surgeries_data, job_ids, and seed")
+
     random.seed(seed)
     np.random.seed(seed)
 

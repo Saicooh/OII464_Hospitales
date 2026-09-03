@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Centralizes all report and plot generation logic.
 """

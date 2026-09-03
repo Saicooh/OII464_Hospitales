@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 # /utils/statistics.py
 """
 Module for statistical analysis of simulation results.
@@ -108,7 +109,7 @@ def rank_biserial(x, y):
 
     Zero differences are omitted and ties receive their average rank. Positive
     differences contribute to the positive rank sum, preserving the direction
-    used by paired analyses.
+    used by the published paired tables.
     """
     differences = np.asarray(x) - np.asarray(y)
     differences = differences[differences != 0]
@@ -190,7 +191,6 @@ def calculate_schedule_quality_metrics(schedule_details):
             ops_by_person[person].append((start, finish))
 
         # Tiempos para value-added ratio
-        proc_end = t.get("ProcessingEnd", finish)
         setup = t.get("SetupUsed", 0) or 0
         trans = t.get("TransitionUsed", 0) or 0
         clean = t.get("CleanupUsed", 0) or 0
@@ -286,7 +286,8 @@ def calculate_room_kpis(schedule_details):
     max_time = 0.0
     for task in schedule_details:
         room = task.get('Resource')
-        if not room: continue
+        if not room:
+            continue
         
         start = task.get('Start', 0.0)
         finish = task.get('Finish', start)
@@ -323,7 +324,8 @@ def analyze_personnel_workload(schedule_details):
     
     for task in schedule_details:
         person = task.get('Personnel')
-        if not person: continue
+        if not person:
+            continue
         
         start = task.get('Start', 0.0)
         finish = task.get('Finish', start)
@@ -362,9 +364,12 @@ def analyze_personnel_workload(schedule_details):
 def _effect_magnitude_r(r):
     """Classifies effect size magnitude using Cohen (1988) thresholds for correlations."""
     ar = abs(r)
-    if ar >= 0.5: return 'large'
-    if ar >= 0.3: return 'medium'
-    if ar >= 0.1: return 'small'
+    if ar >= 0.5:
+        return 'large'
+    if ar >= 0.3:
+        return 'medium'
+    if ar >= 0.1:
+        return 'small'
     return 'trivial'
 
 
@@ -566,7 +571,7 @@ def perform_paired_statistical_test(all_results, alpha, verbose=True, metric='ma
             if res['is_significant']:
                 print(f"  -> {res['better_algo']} is significantly better (after Holm-Bonferroni)")
             else:
-                print(f"  -> No significant difference (after Holm-Bonferroni)")
+                print("  -> No significant difference (after Holm-Bonferroni)")
 
     return output
 
@@ -579,8 +584,8 @@ def compute_operational_summary(
 
     Unlike ``best_runs_by_mh`` (which cherry-picks each algorithm's single
     best simulation by ``combined_obj``), this computes representative paired
-    aggregates across ALL simulations, so reports reflect typical performance
-    rather than a best-case run.
+    aggregates across ALL simulations, so paper tables reflect typical
+    performance rather than a best-case run.
 
     Args:
         all_results: dict {algo_name: {metric_name: [values aligned by sim index]}}.

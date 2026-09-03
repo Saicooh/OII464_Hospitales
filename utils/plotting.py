@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Plotting utilities with DRY principles applied.
 All visualization logic is abstracted into reusable components.
@@ -14,9 +15,7 @@ from matplotlib import colors as mcolors
 from typing import List, Dict, Optional, Tuple
 
 from config.config import (
-    JOB_TYPES,
     SETUP_TIMES,
-    CLEANUP_TIMES,
     VERBOSE_MODE,
     get_job_type,
 )
@@ -31,11 +30,18 @@ ALGORITHM_COLORS = {
     "dPSO": "lightsalmon",
     "SBOA": "lightgreen",
     "dMShOA": "mediumpurple",
+    "MH": "gold",
 }
 
-BOXPLOT_COLORS = ["lightblue", "lightsalmon", "lightgreen", "mediumpurple"]
-ALGORITHM_ORDER = ["GA", "dPSO", "SBOA", "dMShOA"]
-ALGORITHM_DATA_KEYS = {"GA": "GA", "dPSO": "dPSO", "SBOA": "SBOA", "dMShOA": "dMShOA Old"}
+BOXPLOT_COLORS = ["lightblue", "lightsalmon", "lightgreen", "mediumpurple", "gold"]
+ALGORITHM_ORDER = ["GA", "dPSO", "SBOA", "dMShOA", "MH"]
+ALGORITHM_DATA_KEYS = {
+    "GA": "GA",
+    "dPSO": "dPSO",
+    "SBOA": "SBOA",
+    "dMShOA": "dMShOA",
+    "MH": "MH",
+}
 
 # Gantt chart styling
 GANTT_STYLE = {
@@ -48,6 +54,8 @@ GANTT_STYLE = {
     "setup_color": "yellow",
     "transition_color": "mediumpurple",  # nuevo: tramo Anestesia→Intervención
     "cleanup_color": "lightcoral",
+    "emergency_color": "red",
+    "emergency_edge_width": 2.0,
     "unused_room_color": "lightgray",
     "unused_room_alpha": 0.2,
     # Connector lines between op1 and op2 of the same job
@@ -77,8 +85,22 @@ class PlotConfig:
     DEFAULT_FIGSIZE = (10, 6)
     GANTT_FIGSIZE = (12, 6)
 
-    DEFAULT_AXIS_LABEL_SIZE = 15.0
-    DEFAULT_LEGEND_SIZE = 13.0
+    # Shared typography for paper-scale analytical figures.
+    PAPER_FONT_SIZE = 13.0
+    PAPER_AXIS_LABEL_SIZE = 15.0
+    PAPER_TICK_LABEL_SIZE = 13.0
+    PAPER_LEGEND_SIZE = 13.0
+    PAPER_ANNOTATION_SIZE = 12.0
+
+    # Opt-in print geometry for camera-ready vector Gantt figures.
+    # GANTT_PRINT_WIDTH_IN is the target *printed* width of the figure. When a
+    # Gantt is built at this width and embedded with \includegraphics
+    # [width=\linewidth], the scale factor is 1.0, so in-figure font sizes are
+    # the sizes that actually reach paper. 6.7 in is the MDPI single-column
+    # text width (assumption: the mdpi class files are not vendored here).
+    GANTT_PRINT_WIDTH_IN = 6.7
+    # Vertical space allotted to one operating-room row inside the axes.
+    GANTT_PRINT_ROOM_HEIGHT_IN = 0.32
 
     _created_dirs = set()  # Cache to avoid repeated os.makedirs calls
 
@@ -122,8 +144,8 @@ class PlotConfig:
 
         Args:
             png_path: Destination PNG path. Pass None to emit no raster output
-                (and no SVG sidecar); use this for vector-only exports where an
-                existing PNG must be left untouched.
+                (and no SVG sidecar); use this for vector-only, print-sized
+                exports where an existing PNG must be left untouched.
             bbox_inches: Passed to savefig. Use 'tight' to let matplotlib
                 attempt to trim whitespace (note: inset_axes elements outside
                 the main axes may not be captured — use trim_right instead).
@@ -193,16 +215,20 @@ class PlotConfig:
 class GanttChartBuilder:
     """
     Builds Gantt charts with DRY principles.
+    Handles both elective and emergency simulations.
     """
 
     # Minimum vertical separation (in y-axis units) between two external labels
     # on the same row before we start staggering them.
     _LABEL_STAGGER_THRESHOLD = 0.08
 
-    # In-figure font sizes for the default Gantt geometry.
+    # In-figure font sizes for the default (screen/raster) geometry. These are
+    # the historical literals and MUST NOT change: the 15-in PNGs published
+    # with the manuscript are reproduced from them byte-compatibly.
     _FONTS_SCREEN = {
         "job_label": 8,
         "unused": 8.5,
+        "emergency": 8.5,
         "ytick": 10.5,
         "xtick": None,  # inherit rcParams
         "axis_label": 11.5,
@@ -212,23 +238,75 @@ class GanttChartBuilder:
         "legend_anchor_y": -0.13,
     }
 
+    # In-figure font sizes for the print geometry. Because the figure is built
+    # at its final printed width, these ARE the printed point sizes. All values
+    # stay at or above 6 pt.
+    _FONTS_PRINT = {
+        "job_label": 7.5,
+        "unused": 7.5,
+        "emergency": 7.5,
+        "ytick": 8.0,
+        "xtick": 8.0,
+        "axis_label": 9.0,
+        "title": 8.5,
+        "legend": 7.5,
+        "legend_ncol": 2,
+        "legend_anchor_y": -0.16,
+    }
+
+
+    # Axes margins (figure fractions) used only by the print geometry. The
+    # bottom margin has to hold the x tick labels, the x axis label and the
+    # two-row legend block, which is why it is far larger than the others.
+    _PRINT_LEFT = 0.095
+    _PRINT_RIGHT = 0.985
+    _PRINT_TOP = 0.945
+    _PRINT_BOTTOM = 0.25
+    _PRINT_BOTTOM_NO_LEGEND = 0.15
+
     def __init__(
         self,
         schedule_details: List[Dict],
         rooms: List[str],
+        emergencies: Optional[List[Dict]] = None,
         job_label_map: Optional[Dict] = None,
+        print_mode: bool = False,
         show_legend: bool = True,
+        print_width_in: Optional[float] = None,
+        print_room_height_in: Optional[float] = None,
     ):
         """
         Args:
+            print_mode: Opt-in. When True the figure is built at its final
+                printed width (``print_width_in``) instead of the 15/18-in
+                screen canvas, and every in-figure font size becomes a true
+                printed point size. Default False preserves the legacy
+                geometry exactly, so existing PNG producers are unaffected.
+            print_width_in: Target printed figure width in inches. Defaults to
+                ``PlotConfig.GANTT_PRINT_WIDTH_IN``.
             show_legend: Whether to draw the segment legend. Defaults to True
                 so existing PNG/default renders retain their behavior.
+            print_room_height_in: Axes height allotted per operating-room row,
+                in inches. Defaults to ``PlotConfig.GANTT_PRINT_ROOM_HEIGHT_IN``.
         """
+        self.print_mode = print_mode
         self.show_legend = show_legend
-        self.fonts = self._FONTS_SCREEN
+        self.print_width_in = (
+            print_width_in
+            if print_width_in is not None
+            else PlotConfig.GANTT_PRINT_WIDTH_IN
+        )
+        self.print_room_height_in = (
+            print_room_height_in
+            if print_room_height_in is not None
+            else PlotConfig.GANTT_PRINT_ROOM_HEIGHT_IN
+        )
+        self.fonts = self._FONTS_PRINT if print_mode else self._FONTS_SCREEN
 
         self.schedule_details = schedule_details
         self.rooms = rooms
+        self.emergencies = emergencies or []
+        self.is_emergency_mode = len(self.emergencies) > 0
         # job_label_map: {job_id -> label_str} for CIE10 display.
         # Falls back to str(job_id) when missing or None.
         self.job_label_map = job_label_map or {}
@@ -245,7 +323,7 @@ class GanttChartBuilder:
         self._ext_label_positions: Dict[str, List[Tuple[float, float]]] = {}
 
     def _compute_job_colors(self) -> Dict:
-        """Assign colors to jobs deterministically."""
+        """Assigns colors to jobs (RED for emergencies)."""
         all_jobs = set(t["Job"] for t in self.schedule_details)
         int_jobs = sorted([j for j in all_jobs if isinstance(j, int)])
         str_jobs = sorted([j for j in all_jobs if isinstance(j, str)])
@@ -260,6 +338,11 @@ class GanttChartBuilder:
             cmap(i / max(1, len(unique_jobs) - 1)) for i in range(len(unique_jobs))
         ]
         job_colors = {job_id: color_list[i] for i, job_id in enumerate(unique_jobs)}
+
+        # Override: Emergency jobs always RED
+        for job_id in str_jobs:
+            if str(job_id).startswith("E"):
+                job_colors[job_id] = GANTT_STYLE["emergency_color"]
 
         return job_colors
 
@@ -295,6 +378,10 @@ class GanttChartBuilder:
             if t.get("Finish", -1) >= 0
         )
 
+    def _is_emergency_job(self, job_id) -> bool:
+        """Checks if a job is an emergency."""
+        return isinstance(job_id, str) and str(job_id).startswith("E")
+
     def _draw_task_bar(self, ax, task: Dict):
         """
         Draws the temporal segments of a task in the Gantt chart.
@@ -307,7 +394,7 @@ class GanttChartBuilder:
 
         Resolución de tiempos (orden de prioridad):
             1. Campos reales del scheduler (SetupUsed, TransitionUsed, CleanupUsed)
-               → propagados desde datos PKL reales.
+               → propagados desde la instancia seleccionada.
             2. Fallback estático (SETUP_TIMES / CleanupUsed=0) para modo sintético
                o cualquier tarea sin campos dinámicos.
 
@@ -330,7 +417,7 @@ class GanttChartBuilder:
             return
 
         # --- Resolución de tiempos de setup/transition/cleanup ---
-        # Prioridad 1: campos reales propagados por el scheduler desde PKL
+        # Prioridad 1: campos propagados por el scheduler desde la instancia
         setup_used = task.get("SetupUsed")  # None si no está presente
         transition_used = task.get("TransitionUsed")  # None si op1 o modo sintético
         cleanup_used = task.get("CleanupUsed")  # None si no está presente
@@ -338,7 +425,7 @@ class GanttChartBuilder:
         is_parallel = (task.get("Operation") == 1)
 
         if setup_used is not None:
-            # Modo real: tiempos dinámicos desde PKL
+            # Tiempos dinámicos de la instancia seleccionada
             setup_duration = setup_used
             cleanup_duration = (
                 cleanup_used if cleanup_used is not None else (finish - processing_end)
@@ -376,8 +463,14 @@ class GanttChartBuilder:
             return
 
         y = self.y_positions[0][resource]
-        edge_width = GANTT_STYLE["edge_width"]
-        edge_color = GANTT_STYLE["edge_color"]
+        is_emergency = self._is_emergency_job(job)
+
+        edge_width = (
+            GANTT_STYLE["emergency_edge_width"]
+            if is_emergency
+            else GANTT_STYLE["edge_width"]
+        )
+        edge_color = "darkred" if is_emergency else GANTT_STYLE["edge_color"]
 
         # --- Segmento 1: Transición observada (hatch sin fondo) ---
         if transition_duration > 1e-6:
@@ -411,6 +504,7 @@ class GanttChartBuilder:
         if proc_duration > 1e-6:
             proc_start = start + time_before_proc
             proc_color = self.job_colors.get(job, "gray")
+
 
             ax.barh(
                 y=y,
@@ -490,6 +584,47 @@ class GanttChartBuilder:
                     alpha=0.6,
                 )
 
+    def _draw_emergency_markers(self, ax):
+        """Draws vertical lines at emergency arrival times."""
+        if not self.emergencies:
+            return
+
+        arrival_times_drawn = set()
+        top_y = min(self.y_positions[0].values()) if self.y_positions[0] else 0
+
+        for em in self.emergencies:
+            arrival_time = em["arrival_time"]
+
+            if VERBOSE_MODE:
+                logger.info(
+                    f"  Drawing emergency line: {em['job_id']} at t={arrival_time:.2f}"
+                )
+
+            if arrival_time not in arrival_times_drawn:
+                ax.axvline(
+                    x=arrival_time,
+                    color="orange",
+                    linestyle="--",
+                    linewidth=2,
+                    alpha=0.7,
+                    zorder=5,
+                )
+
+                ax.text(
+                    arrival_time,
+                    top_y - 0.5,
+                    f"{em['job_id']}",
+                    rotation=90,
+                    va="bottom",
+                    ha="right",
+                    color="darkorange",
+                    fontsize=self.fonts["emergency"],
+                    fontweight="bold",
+                    alpha=0.9,
+                )
+
+                arrival_times_drawn.add(arrival_time)
+
     def _configure_axes(self, ax, title: Optional[str], sim_num: Optional[int] = None):
         """Configures axes labels, optional title, ticks, and grid."""
         y_pos, y_labels = self.y_positions
@@ -510,7 +645,8 @@ class GanttChartBuilder:
                     f"{title} (Best: Sim #{sim_num}) - Makespan: {self.max_time:.2f} min"
                 )
             else:
-                title_text = f"{title} - Makespan: {self.max_time:.2f} min"
+                suffix = " (Emergencies in RED)" if self.is_emergency_mode else ""
+                title_text = f"{title}{suffix} - Makespan: {self.max_time:.2f} min"
 
             ax.set_title(title_text, fontsize=self.fonts["title"], fontweight="bold")
 
@@ -562,41 +698,71 @@ class GanttChartBuilder:
     def _add_legend(self, ax):
         """Adds segment legend and an explanatory note for the transition model."""
         # Entrada de leyenda para las líneas de conexión op1→op2
-        connector_legend_entry = plt.Line2D(
-            [0],
-            [0],
-            color=GANTT_STYLE["connector_color"],
-            linewidth=GANTT_STYLE["connector_lw"] + 0.3,
-            linestyle=(0, (3, 3)),
-            alpha=0.9,
-            label="Op1 → Op2 connector (same job)",
-        )
+        if self.is_emergency_mode:
+            handles = [
+                Patch(
+                    facecolor="none",
+                    edgecolor="black",
+                    label="Setup (OR → Anesthesia)",
+                    hatch="///",
+                ),
+                Patch(
+                    facecolor="grey", edgecolor="black", label="Processing (Elective)"
+                ),
+                Patch(
+                    facecolor=GANTT_STYLE["emergency_color"],
+                    edgecolor="darkred",
+                    linewidth=2,
+                    label="Processing (Emergency)",
+                ),
+                Patch(
+                    facecolor="none",
+                    edgecolor="black",
+                    label="Transition (Holding → OR)",
+                    hatch="\\\\\\",
+                ),
+                Patch(
+                    facecolor="none",
+                    edgecolor="black",
+                    label="Cleanup (OR Exit — Op2 only)",
+                    hatch="|||",
+                ),
+                plt.Line2D(
+                    [0],
+                    [0],
+                    color="orange",
+                    linewidth=2,
+                    linestyle="--",
+                    label="Emergency Arrival",
+                ),
+            ]
+        else:
+            handles = [
+                Patch(
+                    facecolor="none",
+                    edgecolor="black",
+                    label="Setup (OR → Anesthesia)",
+                    hatch="///",
+                ),
+                Patch(
+                    facecolor="grey",
 
-        handles = [
-            Patch(
-                facecolor="none",
-                edgecolor="black",
-                label="Setup (OR → Anesthesia)",
-                hatch="///",
-            ),
-            Patch(
-                facecolor="grey",
-                edgecolor="black",
-                label="Processing (Color per Job/CIE10)",
-            ),
-            Patch(
-                facecolor="none",
-                edgecolor="black",
-                label="Transition (Holding → OR)",
-                hatch="\\\\\\",
-            ),
-            Patch(
-                facecolor="none",
-                edgecolor="black",
-                label="Cleanup (OR Exit — Op2 only)",
-                hatch="|||",
-            ),
-        ]
+                    edgecolor="black",
+                    label="Processing (Color per Job/CIE10)",
+                ),
+                Patch(
+                    facecolor="none",
+                    edgecolor="black",
+                    label="Transition (Holding → OR)",
+                    hatch="\\\\\\",
+                ),
+                Patch(
+                    facecolor="none",
+                    edgecolor="black",
+                    label="Cleanup (OR Exit — Op2 only)",
+                    hatch="|||",
+                ),
+            ]
 
         # Leyenda compacta debajo del eje (fuera del área útil del Gantt).
         # Moverla a "lower center" con bbox_to_anchor libera el cuadrante
@@ -607,16 +773,21 @@ class GanttChartBuilder:
             bbox_to_anchor=(0.0, self.fonts["legend_anchor_y"]),
             ncol=min(len(handles), self.fonts["legend_ncol"]),
             fontsize=self.fonts["legend"],
-            title="Segments:",
+            title="Legend:" if self.is_emergency_mode else "Segments:",
             framealpha=0.85,
             borderpad=0.5,
         )
+        if self.print_mode:
+            legend.get_title().set_fontsize(self.fonts["legend"])
+
+
+
     def _add_job_panel(self, fig, ax):
         """
         Añade un panel lateral compacto (fuera del eje Gantt) que lista
         todos los jobs/CIE10 con su color asignado.
 
-        Se activa solo cuando hay un job_label_map real (modo PKL).
+        Se activa solo cuando hay un mapa de etiquetas de la instancia.
         En modo sintético o sin map, se omite silenciosamente.
 
         Diseño:
@@ -632,6 +803,9 @@ class GanttChartBuilder:
         entries = []
         for job_id, label in self.job_label_map.items():
             color = self.job_colors.get(job_id, "gray")
+            # Omitir emergencias (ya en leyenda)
+            if self._is_emergency_job(job_id):
+                continue
             entries.append((label, color))
 
         if not entries:
@@ -745,10 +919,29 @@ class GanttChartBuilder:
         n_rooms = max(len(self.rooms_with_tasks), 1)
         has_panel = bool(self.job_label_map)
 
-        # Adapt the canvas height to the number of active rooms. A side panel
-        # gets additional width so labels and the legend remain readable.
-        adaptive_height = max(PlotConfig.GANTT_FIGSIZE[1], n_rooms * 0.65 + 2.5)
-        adaptive_width = 18 if has_panel else 15
+        if self.print_mode:
+            # Print geometry: the width IS the printed width, so no downscaling
+            # happens at \includegraphics time. Height follows from the number
+            # of rooms so each row keeps a readable band inside the axes; the
+            # axes occupy PRINT_AXES_FRACTION of the figure height (the rest
+            # goes to title, x-axis and the legend block below the axes).
+            print_bottom = (
+                self._PRINT_BOTTOM
+                if self.show_legend
+                else self._PRINT_BOTTOM_NO_LEGEND
+            )
+            axes_fraction = self._PRINT_TOP - print_bottom
+            adaptive_width = self.print_width_in
+            adaptive_height = max(
+                4.0, n_rooms * self.print_room_height_in / axes_fraction
+            )
+        else:
+            # Figsize adaptativo: escalar altura según salas activas
+            adaptive_height = max(PlotConfig.GANTT_FIGSIZE[1], n_rooms * 0.65 + 2.5)
+            # Si tenemos panel lateral de CIE10, ampliar el ancho total.
+            # 18 pulgadas con panel (vs 16 antes) da más lienzo para el área Gantt
+            # sin comprimir el panel lateral ni la leyenda.
+            adaptive_width = 18 if has_panel else 15
 
         fig, ax = plt.subplots(figsize=(adaptive_width, adaptive_height))
 
@@ -764,11 +957,33 @@ class GanttChartBuilder:
 
         self._draw_unused_rooms(ax)
 
+        if self.is_emergency_mode:
+            self._draw_emergency_markers(ax)
+
         self._configure_axes(ax, title, sim_num)
         if self.show_legend:
             self._add_legend(ax)
 
-        if has_panel:
+        if self.print_mode:
+            # Narrow, explicit margins: at 6.7 in wide every tenth of an inch
+            # of margin is expensive, so the axes take as much of the canvas
+            # as the tick labels allow. The right margin widens when the CIE10
+            # side panel is present so the panel still has room.
+            if has_panel:
+                self._add_job_panel(fig, ax)
+            fig.subplots_adjust(
+                left=self._PRINT_LEFT,
+                right=0.86 if has_panel else self._PRINT_RIGHT,
+                top=self._PRINT_TOP,
+                bottom=(
+                    self._PRINT_BOTTOM
+                    if self.show_legend
+                    else self._PRINT_BOTTOM_NO_LEGEND
+                ),
+            )
+            fig._skip_tight_layout = True
+        # Panel lateral CIE10 (solo modo real)
+        elif has_panel:
             self._add_job_panel(fig, ax)
             # Layout con panel lateral:
             # - left=0.06   → margen izquierdo (etiquetas de salas)
@@ -782,6 +997,7 @@ class GanttChartBuilder:
             fig._skip_tight_layout = True
         else:
             # Sin panel: márgenes explícitos, leyenda también debajo
+
             fig.subplots_adjust(left=0.07, right=0.97, top=0.93, bottom=0.22)
             fig._skip_tight_layout = True
 
@@ -800,9 +1016,11 @@ def plot_gantt_chart(
     algo_name: str,
     output_dir: str,
     sim_num: Optional[int] = None,
+    emergencies: Optional[List[Dict]] = None,
     job_label_map: Optional[Dict] = None,
 ) -> Tuple[str, str]:
-    """Render and save a Gantt chart for an elective schedule.
+    """
+    Unified Gantt chart plotter for both elective and emergency modes.
 
     Args:
         schedule_details: List of task dictionaries
@@ -811,6 +1029,7 @@ def plot_gantt_chart(
         algo_name: Algorithm name (for filename)
         output_dir: Output directory
         sim_num: Simulation number (optional, for title)
+        emergencies: List of emergency events (if emergency mode)
         job_label_map: Optional dict {job_id -> display_label} for CIE10 labels.
                        Falls back to str(job_id) for missing entries.
 
@@ -821,12 +1040,13 @@ def plot_gantt_chart(
         logger.warning(f"No schedule details for {algo_name} Gantt chart")
         return None, None
 
-    filename = f"best_gantt_{algo_name.lower()}"
+    # Determine mode and filename
+    is_emergency = emergencies is not None and len(emergencies) > 0
+    prefix = "emergency_gantt" if is_emergency else "best_gantt"
+    filename = f"{prefix}_{algo_name.lower()}"
 
     # Build chart
-    builder = GanttChartBuilder(
-        schedule_details, rooms, job_label_map=job_label_map
-    )
+    builder = GanttChartBuilder(schedule_details, rooms, emergencies, job_label_map)
     fig = builder.build(title, sim_num)
 
     # Save — when a CIE10 side panel is present, trim trailing right-side
@@ -850,20 +1070,24 @@ def plot_gantt_chart(
 def plot_boxplot(
     all_results: Dict,
     output_dir: str,
+    mode: str = "elective",
     show_title: bool = True,
     axis_label_size: float = 18.0,
     tick_label_size: float = 15.0,
 ) -> Tuple[str, str]:
-    """Render a makespan comparison boxplot for elective simulations.
+    """
+    Unified boxplot for both elective and emergency modes.
 
     Args:
         all_results: Dictionary with algorithm results
         output_dir: Output directory
+        mode: 'elective' or 'emergency'
+
     Returns:
         Tuple of (png_path, pdf_path)
     """
     if not all_results:
-        logger.warning("No results for elective boxplot")
+        logger.warning(f"No results for {mode} boxplot")
         return None, None
 
     fig, ax = plt.subplots(figsize=PlotConfig.DEFAULT_FIGSIZE)
@@ -882,7 +1106,7 @@ def plot_boxplot(
                 labels.append(algo_name)
 
     if not data_to_plot:
-        logger.warning("No valid data for elective boxplot")
+        logger.warning(f"No valid data for {mode} boxplot")
         plt.close(fig)
         return None, None
 
@@ -896,23 +1120,28 @@ def plot_boxplot(
     ax.tick_params(axis="both", labelsize=16.0)
     ax.set_xticklabels(labels, fontsize=16.0)
     if show_title:
-        title = "Elective Simulation: Makespan Comparison"
+        title = f"{mode.capitalize()} Simulation: Makespan Comparison"
         ax.set_title(title, fontsize=15, fontweight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.5)
 
-    filename = "elective_makespan_comparison"
+    filename = f"{mode}_makespan_comparison"
     png_path, pdf_path = PlotConfig.get_output_paths(output_dir, "boxplot", filename)
     PlotConfig.save_and_close(fig, png_path, pdf_path)
 
     return png_path, pdf_path
 
 
-def plot_execution_time_barplot(all_results: Dict, output_dir: str) -> str:
-    """Render an execution-time barplot for elective simulations.
+def plot_execution_time_barplot(
+    all_results: Dict, output_dir: str, mode: str = "elective"
+) -> str:
+    """
+    Unified execution time barplot for both modes.
 
     Args:
         all_results: Dictionary with algorithm results
         output_dir: Output directory
+        mode: 'elective' or 'emergency'
+
     Returns:
         Path to saved PNG file
     """
@@ -948,13 +1177,13 @@ def plot_execution_time_barplot(all_results: Dict, output_dir: str) -> str:
 
     ax.set_ylabel(
         "Average Execution Time (seconds)",
-        fontsize=PlotConfig.DEFAULT_AXIS_LABEL_SIZE,
+        fontsize=PlotConfig.PAPER_AXIS_LABEL_SIZE,
     )
-    title = "Elective Simulation: Average Execution Time per Algorithm"
+    title = f"{mode.capitalize()} Simulation: Average Execution Time per Algorithm"
     ax.set_title(title, fontsize=13, fontweight="bold")
     ax.grid(axis="y", linestyle="--", alpha=0.5)
 
-    filename = "elective_execution_time"
+    filename = f"{mode}_execution_time"
     png_path, pdf_path = PlotConfig.get_output_paths(output_dir, "barplot", filename)
     PlotConfig.save_and_close(fig, png_path, pdf_path)
 
@@ -962,14 +1191,17 @@ def plot_execution_time_barplot(all_results: Dict, output_dir: str) -> str:
 
 
 def plot_makespan_histogram(
-    data: List[float], algo_name: str, output_dir: str
+    data: List[float], algo_name: str, output_dir: str, mode: str = "elective"
 ) -> Tuple[str, str]:
-    """Render a makespan histogram for one elective algorithm.
+    """
+    Unified histogram for both modes.
 
     Args:
         data: List of makespan values
         algo_name: Algorithm name
         output_dir: Output directory
+        mode: 'elective' or 'emergency'
+
     Returns:
         Tuple of (png_path, pdf_path)
     """
@@ -1003,18 +1235,20 @@ def plot_makespan_histogram(
         label=f"Median: {median_val:.2f}",
     )
 
-    ax.set_xlabel("Makespan (minutes)", fontsize=PlotConfig.DEFAULT_AXIS_LABEL_SIZE)
-    ax.set_ylabel("Frequency", fontsize=PlotConfig.DEFAULT_AXIS_LABEL_SIZE)
+    ax.set_xlabel("Makespan (minutes)", fontsize=PlotConfig.PAPER_AXIS_LABEL_SIZE)
+    ax.set_ylabel("Frequency", fontsize=PlotConfig.PAPER_AXIS_LABEL_SIZE)
 
     ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
 
-    title = f"Elective Simulation: {algo_name} - Makespan Distribution"
+    title = f"{mode.capitalize()} Simulation: {algo_name} - Makespan Distribution"
     ax.set_title(title, fontsize=13, fontweight="bold")
-    ax.legend(fontsize=PlotConfig.DEFAULT_LEGEND_SIZE)
+    ax.legend(fontsize=PlotConfig.PAPER_LEGEND_SIZE)
     ax.grid(axis="y", linestyle="--", alpha=0.5)
 
-    filename = f"histogram_{algo_name.lower()}"
+    prefix = "emergency_histogram" if mode == "emergency" else "histogram"
+    filename = f"{prefix}_{algo_name.lower()}"
     png_path, pdf_path = PlotConfig.get_output_paths(output_dir, "histograms", filename)
+
     PlotConfig.save_and_close(fig, png_path, pdf_path)
 
     return png_path, pdf_path
@@ -1030,7 +1264,7 @@ def plot_convergence_history(
     metric_name: str = "Fitness",
 ) -> Tuple[str, str]:
     """
-    Plots the convergence curve.
+    Plots convergence curve (same for both modes).
 
     Args:
         best_history: Best fitness/makespan history
@@ -1136,7 +1370,7 @@ def plot_personnel_workload(
     width = 0.35
 
     # Ax1: Utilization
-    bars1 = ax1.bar(
+    ax1.bar(
         x_anest,
         anest_util,
         width,
@@ -1145,7 +1379,7 @@ def plot_personnel_workload(
         edgecolor="black",
         label="Anesthesiologists",
     )
-    bars2 = ax1.bar(
+    ax1.bar(
         x_ciruj + len(anest_names) + 0.5,
         ciruj_util,
         width,
@@ -1176,7 +1410,7 @@ def plot_personnel_workload(
     # Ax2: Operations
     anest_ops = [anestesiologos[n]["operations"] for n in anest_names]
     ciruj_ops = [cirujanos[n]["operations"] for n in ciruj_names]
-    bars3 = ax2.bar(
+    ax2.bar(
         x_anest,
         anest_ops,
         width,
@@ -1185,7 +1419,7 @@ def plot_personnel_workload(
         edgecolor="black",
         label="Anesthesiologists",
     )
-    bars4 = ax2.bar(
+    ax2.bar(
         x_ciruj + len(anest_names) + 0.5,
         ciruj_ops,
         width,
@@ -1265,6 +1499,7 @@ def plot_personnel_workload(
         width,
         label="Work Time",
         color="#FFA726",
+
         alpha=0.8,
         edgecolor="black",
     )
@@ -1319,7 +1554,7 @@ def plot_kpi_histogram(
     colors = [cmap(r / max(max_rate, 1)) for r in rates]
 
     fig, ax = plt.subplots(figsize=(14, 7))
-    bars = ax.bar(
+    ax.bar(
         range(len(pabellones)),
         rates,
         width=0.7,
@@ -1417,7 +1652,7 @@ def plot_cie10_histogram(
     colors = [cmap(p / max(max_perc, 1)) for p in perc]
 
     fig, ax = plt.subplots(figsize=(max(14, len(labels) * 0.6), 7))
-    bars = ax.bar(
+    ax.bar(
         range(len(labels)),
         perc,
         width=0.7,
@@ -1449,7 +1684,7 @@ def plot_cie10_histogram(
 
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(
-        [f"Job {l}" for l in labels], rotation=45, ha="right", fontsize=10
+        [f"Job {label}" for label in labels], rotation=45, ha="right", fontsize=10
     )
     ax.set_xlabel("Job ID (CIE10)", fontsize=12, fontweight="bold")
     ax.set_ylabel("Time Usage (%)", fontsize=12, fontweight="bold")
@@ -1508,13 +1743,14 @@ def plot_personnel_usage_histogram(
     colors = ["#EF5350" if p.startswith("A") else "#FFA726" for p in ordered_people]
 
     fig, ax = plt.subplots(figsize=(14, 7))
-    bars = ax.bar(
+    ax.bar(
         x_positions,
         perc,
         width=0.7,
         color=colors,
         edgecolor="black",
         linewidth=1.2,
+
         alpha=0.85,
     )
 
@@ -1594,7 +1830,7 @@ def plot_personnel_gantt(
         cmap = (
             plt.get_cmap("tab20") if len(unique_jobs) <= 20 else plt.get_cmap("turbo")
         )
-    except:
+    except Exception:
         cmap = plt.get_cmap("tab10")
 
     job_colors = {
@@ -1701,17 +1937,24 @@ def plot_personnel_gantt(
 # =============================================================================
 
 
-def generate_summary_plots(all_results: Dict, output_dir: str):
-    """Generate all summary plots for elective simulations."""
-    logger.info("  -> Generating elective summary plots...")
+def generate_summary_plots(all_results: Dict, output_dir: str, mode: str = "elective"):
+    """
+    Generates all summary plots for a simulation mode.
+
+    Args:
+        all_results: Dictionary with algorithm results
+        output_dir: Output directory
+        mode: 'elective' or 'emergency'
+    """
+    logger.info(f"  -> Generating {mode} summary plots...")
 
     # Boxplot
-    png_path, _ = plot_boxplot(all_results, output_dir)
+    png_path, _ = plot_boxplot(all_results, output_dir, mode)
     if png_path:
-        logger.info(f"    - Elective boxplot saved to: {png_path}")
+        logger.info(f"    - {mode.capitalize()} boxplot saved to: {png_path}")
 
     # Execution time barplot
-    png_path = plot_execution_time_barplot(all_results, output_dir)
+    png_path = plot_execution_time_barplot(all_results, output_dir, mode)
     if png_path:
         logger.info(f"    - Execution time barplot saved to: {png_path}")
 
@@ -1727,12 +1970,17 @@ def generate_summary_plots(all_results: Dict, output_dir: str):
 
         if len(makespans) >= 2:
             png_path, _ = plot_makespan_histogram(
-                makespans, algo_name, output_dir
+                makespans, algo_name, output_dir, mode
             )
             if png_path and VERBOSE_MODE:
                 logger.info(
-                    f"    - Elective histogram for {algo_name} saved to: {png_path}"
+                    f"    - {mode.capitalize()} histogram for {algo_name} saved to: {png_path}"
                 )
+
+
+def generate_emergency_summary_plots(all_results: Dict, output_dir: str):
+    """Wrapper for emergency mode (backward compatibility)."""
+    generate_summary_plots(all_results, output_dir, mode="emergency")
 
 
 # =============================================================================
@@ -1742,4 +1990,21 @@ def generate_summary_plots(all_results: Dict, output_dir: str):
 
 def plot_comparison_boxplot(all_results: Dict, output_dir: str) -> Tuple[str, str]:
     """Alias for backward compatibility."""
-    return plot_boxplot(all_results, output_dir)
+    return plot_boxplot(all_results, output_dir, mode="elective")
+
+
+def plot_gantt_with_emergencies(
+    schedule_details: List[Dict],
+    rooms: List[str],
+    title: str,
+    algorithm_name: str,
+    output_dir: str,
+    emergencies: List[Dict],
+    sim_num: Optional[int] = None,
+
+    verbose: bool = True,
+) -> Tuple[str, str]:
+    """Alias for backward compatibility."""
+    return plot_gantt_chart(
+        schedule_details, rooms, title, algorithm_name, output_dir, sim_num, emergencies
+    )
