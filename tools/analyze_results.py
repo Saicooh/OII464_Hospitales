@@ -145,6 +145,10 @@ def main() -> None:
     report["iqr_rel_pct"] = (iqr.mean() * 100).to_dict()
 
     # Tiempo, esperas y mutaciones
+    if "wait_violations" in runs:
+        viol = runs.groupby("A")["wait_violations"].agg(lambda v: (v > 0).mean() * 100).loc[ORDER]
+        lines.append("\nCorridas con algún trabajo sobre su límite de espera (%):\n" + viol.round(1).to_string())
+        report["corridas_con_violacion_pct"] = viol.to_dict()
     summary = runs.groupby("A")[["seconds", "mutations", "total_wait", "max_wait", "makespan"]].median().loc[ORDER]
     lines.append("\nMedianas globales por variante:\n" + summary.round(2).to_string())
     report["resumen"] = summary.to_dict()

@@ -128,6 +128,10 @@ def main() -> None:
     parser.add_argument("--label", default="principal")
     parser.add_argument("--jobs", type=int, default=-1)
     parser.add_argument("--curves", action="store_true", help="guardar curvas por iteración")
+    parser.add_argument(
+        "--instance-index", type=int, default=None,
+        help="ejecutar solo la instancia con este índice dentro del split (p. ej. SLURM_ARRAY_TASK_ID)",
+    )
     for item in dataclasses.fields(HybridParams):
         if item.name == "probabilities":
             parser.add_argument("--probabilities", nargs="+", type=float)
@@ -144,9 +148,12 @@ def main() -> None:
         overrides["probabilities"] = tuple(overrides["probabilities"])
     params = HybridParams(**overrides)
 
+    paths = SPLITS[args.split]
+    if args.instance_index is not None:
+        paths = [paths[args.instance_index]]
     tasks = [
         (path, method, seed)
-        for path in SPLITS[args.split]
+        for path in paths
         for method in args.methods
         for seed in range(args.first_seed, args.first_seed + args.seeds)
     ]
@@ -164,7 +171,7 @@ def main() -> None:
     (out / "config.json").write_text(
         json.dumps(
             {
-                "split": args.split, "instances": SPLITS[args.split],
+                "split": args.split, "instances": paths,
                 "methods": args.methods, "seeds": args.seeds,
                 "first_seed": args.first_seed, "params": dataclasses.asdict(params),
                 "python": sys.version, "platform": platform.platform(),
