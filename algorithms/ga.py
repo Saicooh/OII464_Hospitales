@@ -18,45 +18,34 @@ from config.config import (
     PABELLONES,
     VERBOSE_MODE,
 )
+from algorithms._eligibility import cyclic_room_assignment, eligible_room_table
 from simulation.scheduler import calculate_schedule_fitness
 
 # --- GA-Specific Helper Functions ---
 
 
-def create_individual(job_ids):
-    """Creates a random individual for the GA with GUARANTEED balanced room distribution."""
+def create_individual(job_ids, eligible=None):
+    """Creates a random individual for the GA with a balanced room distribution.
+
+    The sequence is a single permutation of the jobs. The historical GA stored
+    two copies of it, but the evaluator only reads the last occurrence of each
+    job, so half of the chromosome was inert and order crossover produced
+    sequences of variable length.
+    """
     individual = {}
-    # 1. Random base sequence of jobs
-    base_sequence = random.sample(job_ids, len(job_ids))
-
-    # 2. Layer 1 must have TWO IDENTICAL COPIES of the base sequence
-    individual["job_sequence_base"] = base_sequence * 2
-
-    # 3. GUARANTEED BALANCED: Ensure every room gets at least one job
-    num_jobs = len(job_ids)
-
-    # Create cyclic assignment lists
-    pab_cycle1 = (PABELLONES * ((num_jobs // len(PABELLONES)) + 1))[:num_jobs]
-    pab_cycle2 = (PABELLONES * ((num_jobs // len(PABELLONES)) + 1))[:num_jobs]
-
-    # Shuffle to add randomness while maintaining balance
-    random.shuffle(pab_cycle1)
-    random.shuffle(pab_cycle2)
-
-    individual["room_assignment"] = {}
-    for idx, job in enumerate(job_ids):
-        individual["room_assignment"][job] = {1: pab_cycle1[idx], 2: pab_cycle2[idx]}
-
+    individual["job_sequence_base"] = random.sample(job_ids, len(job_ids))
+    table = eligible if eligible is not None else {}
+    individual["room_assignment"] = cyclic_room_assignment(job_ids, PABELLONES, table)
     return individual
 
 
-def selection(population, fitnesses, job_ids):
+def selection(population, fitnesses, job_ids, eligible=None):
     """Inverted roulette wheel selection based on fitness (minimization)."""
     valid_indices = [i for i, f in enumerate(fitnesses) if f != float("inf")]
 
     # If there are no valid individuals, a new random population is generated.
     if not valid_indices:
-        return [create_individual(job_ids) for _ in range(len(population))]
+        return [create_individual(job_ids, eligible) for _ in range(len(population))]
 
     valid_pop = [population[i] for i in valid_indices]
     valid_fit = [fitnesses[i] for i in valid_indices]
@@ -78,6 +67,22 @@ def selection(population, fitnesses, job_ids):
     return [valid_pop[i] for i in chosen_indices]
 
 
+def order_crossover(donor, other, p1, p2):
+    """Standard OX1: keep donor[p1..p2] in place and fill the remaining
+    positions, starting after p2 and wrapping around, with the jobs of
+    ``other`` in the order they appear after p2."""
+    n = len(donor)
+    child = [None] * n
+    child[p1 : p2 + 1] = donor[p1 : p2 + 1]
+    kept = set(donor[p1 : p2 + 1])
+    fill = [other[(p2 + 1 + k) % n] for k in range(n)]
+    fill = [job for job in fill if job not in kept]
+    positions = [(p2 + 1 + k) % n for k in range(n - (p2 - p1 + 1))]
+    for position, job in zip(positions, fill):
+        child[position] = job
+    return child
+
+
 def crossover(parent1, parent2):
     """Performs crossover on sequence (Order Crossover - OX1) and room assignment."""
     child1 = copy.deepcopy(parent1)
@@ -90,18 +95,8 @@ def crossover(parent1, parent2):
         n = len(seq1)
         if n >= 2:
             p1, p2 = sorted(random.sample(range(n), 2))
-
-            sub1 = seq1[p1 : p2 + 1]
-            remaining1 = [item for item in seq2 if item not in sub1]
-            child1["job_sequence_base"] = (
-                remaining1[-(n - (p2 + 1)) :] + sub1 + remaining1[: -(n - (p2 + 1))]
-            )
-
-            sub2 = seq2[p1 : p2 + 1]
-            remaining2 = [item for item in seq1 if item not in sub2]
-            child2["job_sequence_base"] = (
-                remaining2[-(n - (p2 + 1)) :] + sub2 + remaining2[: -(n - (p2 + 1))]
-            )
+            child1["job_sequence_base"] = order_crossover(seq1, seq2, p1, p2)
+            child2["job_sequence_base"] = order_crossover(seq2, seq1, p1, p2)
 
     # Room assignment crossover (single point)
     if random.random() < CROSSOVER_PROBABILITY:
@@ -121,7 +116,7 @@ def crossover(parent1, parent2):
     return child1, child2
 
 
-def mutate(individual):
+def mutate(individual, eligible=None):
     """Performs mutation on sequence (swap) and room assignment."""
     ind = copy.deepcopy(individual)
 
@@ -132,12 +127,13 @@ def mutate(individual):
             i1, i2 = random.sample(range(len(seq)), 2)
             seq[i1], seq[i2] = seq[i2], seq[i1]
 
-    # Room assignment mutation (change to a random room)
+    # Room assignment mutation (change to a random eligible room)
     mutation_prob_per_room = MUTATION_PROBABILITY / 2
     for job in ind["room_assignment"]:
         for op in [1, 2]:
             if random.random() < mutation_prob_per_room:
-                ind["room_assignment"][job][op] = random.choice(PABELLONES)
+                options = (eligible or {}).get((job, op), PABELLONES)
+                ind["room_assignment"][job][op] = random.choice(options)
     return ind
 
 
@@ -174,8 +170,32 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     random.seed(seed)
     np.random.seed(seed)
 
-    # Initialize population
-    population = [create_individual(job_ids) for _ in range(POPULATION_SIZE_GA)]
+    eligible = eligible_room_table(surgeries_data, PABELLONES)
+
+    import config.config as config
+
+    # Every algorithm stops after the same number of evaluator calls when
+    # ``evaluation_budget`` is set; otherwise after MAX_GENERATIONS.
+    budget = config.EVALUATION_BUDGET
+    evaluations = 0
+
+    def evaluate(individual):
+        nonlocal evaluations
+        evaluations += 1
+        return calculate_schedule_fitness(individual, surgeries_data)
+
+    def makespan_of(individual):
+        _, makespan, _ = calculate_schedule_fitness(
+            individual, surgeries_data, return_details=True
+        )
+        return makespan
+
+    # Initialize population. Each individual is evaluated once and its fitness
+    # is kept: the historical loop re-evaluated the whole population every
+    # generation, which spent evaluations without new information.
+    size = POPULATION_SIZE_GA if budget is None else max(2, min(POPULATION_SIZE_GA, budget))
+    population = [create_individual(job_ids, eligible) for _ in range(size)]
+    fitnesses = [evaluate(ind) for ind in population]
 
     best_objective_overall = float("inf")
     best_solution_overall = None
@@ -183,87 +203,64 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     best_fitness_history = []
     avg_fitness_history = []
 
-    print_interval = max(1, MAX_GENERATIONS // 4)
+    def track_best(candidates, values):
+        nonlocal best_objective_overall, best_solution_overall, best_makespan_overall
+        finite = [(value, index) for index, value in enumerate(values) if value != float("inf")]
+        if not finite:
+            return float("inf"), float("inf")
+        value, index = min(finite)
+        makespan = makespan_of(candidates[index])
+        if value < best_objective_overall:
+            best_objective_overall = value
+            best_solution_overall = copy.deepcopy(candidates[index])
+            best_makespan_overall = makespan
+        return value, makespan
 
-    for generation in range(MAX_GENERATIONS):
-        fitnesses = [
-            calculate_schedule_fitness(ind, surgeries_data) for ind in population
-        ]
-
+    track_best(population, fitnesses)
+    generation = -1
+    while (budget is None and generation + 1 < MAX_GENERATIONS) or (
+        budget is not None and evaluations < budget
+    ):
+        generation += 1
         valid_fitnesses = [f for f in fitnesses if f != float("inf")]
-        best_fitness_gen = min(valid_fitnesses) if valid_fitnesses else float("inf")
         avg_fitness_gen = np.mean(valid_fitnesses) if valid_fitnesses else float("inf")
-
-        best_so_far = best_fitness_history[-1] if best_fitness_history else float("inf")
-        best_fitness_history.append(min(best_fitness_gen, best_so_far))
+        best_fitness_history.append(best_objective_overall)
         avg_fitness_history.append(avg_fitness_gen)
 
-        # Compute real makespan for the best individual of this generation
-        if best_fitness_gen != float("inf"):
-            best_gen_index = fitnesses.index(best_fitness_gen)
-            _, iter_makespan_gen, _ = calculate_schedule_fitness(
-                population[best_gen_index], surgeries_data, return_details=True
-            )
-        else:
-            iter_makespan_gen = float("inf")
-
-        if best_fitness_gen < best_objective_overall:
-            best_objective_overall = best_fitness_gen
-            best_solution_overall = copy.deepcopy(population[best_gen_index])
-            best_makespan_overall = iter_makespan_gen
-
         if VERBOSE_MODE:
-            if (
-                generation == 0
-                or (generation + 1) % print_interval == 0
-                or generation == MAX_GENERATIONS - 1
-            ):
-                print(
-                    f"  -> Gen {generation + 1}/{MAX_GENERATIONS}, Best Fitness: {best_objective_overall:.2f} || Makespan (of Best Fitness): {best_makespan_overall:.2f}"
-                )
+            print(
+                f"  -> Gen {generation + 1}, Best Fitness: {best_objective_overall:.2f} "
+                f"|| Makespan (of Best Fitness): {best_makespan_overall:.2f}"
+            )
 
         # --- Create New Generation ---
         sorted_pop_indices = np.argsort(fitnesses)
-        elite = [
-            copy.deepcopy(population[i])
-            for i in sorted_pop_indices[:ELITISM_COUNT]
-            if fitnesses[i] != float("inf")
+        elite_indices = [
+            i for i in sorted_pop_indices[:ELITISM_COUNT] if fitnesses[i] != float("inf")
         ]
+        elite = [copy.deepcopy(population[i]) for i in elite_indices]
+        elite_fitnesses = [fitnesses[i] for i in elite_indices]
 
-        selected_population = selection(population, fitnesses, job_ids)
+        selected_population = selection(population, fitnesses, job_ids, eligible)
 
+        n_offspring = len(population) - len(elite)
+        if budget is not None:
+            n_offspring = min(n_offspring, budget - evaluations)
         offspring_list = []
-        while len(elite) + len(offspring_list) < POPULATION_SIZE_GA:
+        while len(offspring_list) < n_offspring:
             parent1, parent2 = random.sample(selected_population, 2)
             child1, child2 = crossover(parent1, parent2)
-            offspring_list.append(mutate(child1))
-            if len(elite) + len(offspring_list) < POPULATION_SIZE_GA:
-                offspring_list.append(mutate(child2))
+            offspring_list.append(mutate(child1, eligible))
+            if len(offspring_list) < n_offspring:
+                offspring_list.append(mutate(child2, eligible))
 
-        # Evaluate offspring ONLY → used for iteration_* metrics (isolated from elite)
-        fitnesses_offspring = [
-            calculate_schedule_fitness(child, surgeries_data)
-            for child in offspring_list
-        ]
-        valid_offspring_fitnesses = [
-            f for f in fitnesses_offspring if f != float("inf")
-        ]
-        if valid_offspring_fitnesses:
-            best_offspring_fit = min(valid_offspring_fitnesses)
-            best_offspring_idx = fitnesses_offspring.index(best_offspring_fit)
-            _, offspring_makespan, _ = calculate_schedule_fitness(
-                offspring_list[best_offspring_idx], surgeries_data, return_details=True
-            )
-        else:
-            best_offspring_fit = float("inf")
-            offspring_makespan = float("inf")
-
-        if best_offspring_fit < best_objective_overall:
-            best_objective_overall = best_offspring_fit
-            best_solution_overall = copy.deepcopy(offspring_list[best_offspring_idx])
-            best_makespan_overall = offspring_makespan
+        fitnesses_offspring = [evaluate(child) for child in offspring_list]
+        _, offspring_makespan = track_best(offspring_list, fitnesses_offspring)
 
         population = elite + offspring_list
+        fitnesses = elite_fitnesses + fitnesses_offspring
+        if len(population) < 2:
+            break
 
         # Emit snapshot for analysis mode instrumentation
         # best_* = historical global best; iteration_* = offspring-only best (isolated)
@@ -275,7 +272,7 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
                 best_fitness=best_objective_overall,
                 best_makespan=best_makespan_overall,
                 iteration_fitness=avg_fitness_gen,
-                iteration_makespan=iter_makespan_gen if iter_makespan_gen != float("inf") else offspring_makespan,
+                iteration_makespan=offspring_makespan,
                 best_solution_snapshot=serialize_solution(best_solution_overall),
             )
 

@@ -561,7 +561,7 @@ class ReportGenerator:
                     op_path = os.path.join(output_dir, f"operational_paired_run{r_id}.csv")
                     reporting.export_operational_paired_summary(op_summary, op_path)
 
-                    wait_test = statistics.perform_paired_statistical_test(
+                    wait_test = statistics.perform_independent_statistical_test(
                         op_for_run, alpha_op, verbose=False,
                         metric="patients_with_extra_wait",
                     )

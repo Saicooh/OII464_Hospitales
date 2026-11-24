@@ -48,25 +48,6 @@ SPLITS: dict[str, list[str]] = {
 }
 
 
-def _violations(context, solution) -> int:
-    """Trabajos cuya espera entre anestesia y cirugía supera el límite de la instancia."""
-    if solution is None:
-        return -1
-    from algorithms.mh import _Data
-    from simulation.scheduler import calculate_schedule_fitness
-
-    _, _, details = calculate_schedule_fitness(solution, _Data(context), return_details=True)
-    limits = {job.job_id: job.operations[1].max_wait for job in context.jobs}
-    end_first = {item["Job"]: item["ProcessingEnd"] for item in details if item["Operation"] == 1}
-    return sum(
-        1
-        for item in details
-        if item["Operation"] == 2
-        and item["Start"] + item["TransitionUsed"] + item["SetupUsed"] - end_first[item["Job"]]
-        > limits[item["Job"]] + 1e-9
-    )
-
-
 def _one(path: str, method: str, seed: int, params: HybridParams, label: str) -> dict:
     context = load_instance(ROOT / path)
     result = run_hybrid(context, seed, method=method, params=params)
@@ -84,7 +65,7 @@ def _one(path: str, method: str, seed: int, params: HybridParams, label: str) ->
         "seconds": result.elapsed,
         "mutations": result.mutations,
         "decisions": sum(1 for block in result.block_log if block["complete"]),
-        "wait_violations": _violations(context, result.best_solution),
+        "wait_violations": result.wait_violations,
     }
     for name in MOVES:
         row[f"n_{name}"] = result.move_counts.get(name, 0)

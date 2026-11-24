@@ -44,15 +44,15 @@ def calculate_patient_wait_metrics(schedule_details):
             continue
         op1 = ops[1]
         op2 = ops[2]
-        op1_finish = op1.get("Finish", 0)
-        op2_start = op2.get("Start", 0)
-        
-        # El tiempo de transición real ocurre antes de la Op1 (Anestesia)
+        # Same definition as the evaluator: from the end of anesthesia
+        # processing to the start of surgery processing. Finish of the
+        # anesthesia includes cleanup and, with blocking, the wait itself.
+        op1_finish = op1.get("ProcessingEnd", op1.get("Finish", 0))
+        op2_start = op2.get("Start", 0) + max(
+            op2.get("SetupUsed", 0.0) or 0.0, op2.get("TransitionUsed", 0.0) or 0.0
+        )
         transition_pre_op = op1.get("TransitionUsed", 0.0) or 0.0
-        # No hay transición de paciente entre Op1 y Op2
-        transition_inter_op = op2.get("TransitionUsed", 0.0) or 0.0
-        
-        extra_wait = max(0, (op2_start - op1_finish) - transition_inter_op)
+        extra_wait = max(0, op2_start - op1_finish)
 
         per_patient.append({
             "job_id": job_id,
@@ -394,10 +394,12 @@ def _holm_bonferroni(results, alpha):
 
 
 def perform_paired_statistical_test(all_results, alpha, verbose=True, metric='makespan'):
-    """Correct statistical analysis for PAIRED samples.
+    """Statistical analysis for genuinely PAIRED samples.
 
-    Since all algorithms are evaluated on the same simulation instances
-    (same day_data per sim_i), the observations are paired. This function:
+    Use it only when observation ``i`` of every algorithm shares a blocking
+    factor, for example the median of each algorithm on instance ``i`` across
+    several instances. Independent runs on one instance are not paired; use
+    ``perform_independent_statistical_test`` for them. This function:
 
     1. Runs Friedman test (non-parametric omnibus for k >= 3 paired groups)
     2. Runs pairwise Wilcoxon signed-rank tests with Holm-Bonferroni
@@ -671,11 +673,117 @@ def compute_operational_summary(
 # Legacy wrapper — keeps old API surface for backward compatibility
 # ---------------------------------------------------------------------------
 
-def perform_u_test_mannwhitney(all_results, alpha, verbose=True):
-    """Delegates to the corrected paired test (Friedman + Wilcoxon).
+def perform_independent_statistical_test(all_results, alpha, verbose=True, metric='makespan'):
+    """Compare algorithms whose runs are independent samples.
 
-    Returns only the ``pairwise`` list so existing callers that expect a flat
-    list of dicts continue to work unchanged.
+    Each simulation of an algorithm is a separate run with its own seed on the
+    same instance. Run ``i`` of one algorithm is unrelated to run ``i`` of
+    another, so the samples are independent, not paired: Friedman and Wilcoxon
+    signed-rank tests do not apply. This function runs the Kruskal-Wallis
+    omnibus test (k >= 3) and pairwise two-sided Mann-Whitney U tests with
+    Holm-Bonferroni correction. Non-finite values (failed runs) are dropped per
+    algorithm and their count is reported.
+
+    The effect size is the rank-biserial correlation for two independent
+    samples, ``r = 2 U_a / (n_a n_b) - 1`` in [-1, 1]; ``r > 0`` means the
+    first algorithm tends to take larger (worse) values. ``effect_r`` stores its
+    absolute value and ``better_algo`` the direction.
+
+    Returns:
+        dict with 'kruskal' (or None), 'pairwise' (list of dicts),
+        'n_by_algorithm' and 'n_excluded_by_algorithm'.
     """
-    result = perform_paired_statistical_test(all_results, alpha, verbose=verbose)
+    algo_keys = list(all_results.keys())
+    groups = {}
+    excluded = {}
+    for key in algo_keys:
+        values = np.asarray(all_results[key][metric], dtype=float)
+        finite = values[np.isfinite(values)]
+        groups[key] = finite
+        excluded[key] = int(values.size - finite.size)
+
+    output = {
+        'kruskal': None,
+        'pairwise': [],
+        'n_by_algorithm': {key: int(groups[key].size) for key in algo_keys},
+        'n_excluded_by_algorithm': excluded,
+    }
+    usable = [key for key in algo_keys if groups[key].size >= 2]
+    if len(usable) < 2:
+        if verbose:
+            print("Not enough valid observations for statistical analysis.")
+        return output
+
+    if len(usable) >= 3:
+        h_stat, p_kw = stats.kruskal(*[groups[key] for key in usable])
+        n_total = sum(groups[key].size for key in usable)
+        k = len(usable)
+        epsilon_sq = float((h_stat - k + 1) / (n_total - k)) if n_total > k else float('nan')
+        output['kruskal'] = {
+            'h_stat': float(h_stat), 'df': k - 1, 'p_value': float(p_kw),
+            'epsilon_squared': epsilon_sq, 'is_significant': p_kw < alpha,
+            'k': k, 'n': int(n_total),
+        }
+        if verbose:
+            print(f"\nKruskal-Wallis (k={k}, n={n_total}): H = {h_stat:.4f}, p = {p_kw:.6e}")
+
+    pairwise_results = []
+    for key_a, key_b in combinations(usable, 2):
+        data_a, data_b = groups[key_a], groups[key_b]
+        n_a, n_b = data_a.size, data_b.size
+        res = {
+            'algo_a': key_a, 'algo_b': key_b,
+            'n_a': int(n_a), 'n_b': int(n_b),
+            'mean_a': float(np.mean(data_a)), 'std_a': float(np.std(data_a, ddof=1)),
+            'mean_b': float(np.mean(data_b)), 'std_b': float(np.std(data_b, ddof=1)),
+            'median_a': float(np.median(data_a)), 'median_b': float(np.median(data_b)),
+        }
+        if np.array_equal(np.sort(data_a), np.sort(data_b)):
+            res.update({
+                'u_stat': float(n_a * n_b / 2), 'p_value': 1.0, 'z_stat': 0.0,
+                'effect_r': 0.0, 'effect_magnitude': 'trivial',
+                'is_significant': False, 'better_algo': '',
+            })
+            pairwise_results.append(res)
+            continue
+        u_a, p_value = stats.mannwhitneyu(data_a, data_b, alternative='two-sided')
+        r_signed = 2.0 * float(u_a) / (n_a * n_b) - 1.0
+        sd_u = np.sqrt(n_a * n_b * (n_a + n_b + 1) / 12.0)
+        z_stat = float(abs(u_a - n_a * n_b / 2.0) / sd_u) if sd_u > 0 else 0.0
+        res.update({
+            'u_stat': float(u_a),
+            'p_value': float(p_value),
+            'z_stat': z_stat,
+            'effect_r': abs(r_signed),
+            'effect_magnitude': _effect_magnitude_r(r_signed),
+            'is_significant': p_value < alpha,  # updated by Holm below
+            'better_algo': key_b if r_signed > 0 else (key_a if r_signed < 0 else ''),
+        })
+        pairwise_results.append(res)
+
+    _holm_bonferroni(pairwise_results, alpha)
+    for res in pairwise_results:
+        if not res['is_significant']:
+            res['better_algo'] = ''
+    output['pairwise'] = pairwise_results
+
+    if verbose:
+        for res in pairwise_results:
+            p_adj = res.get('p_adjusted', res['p_value'])
+            print(f"\n--- {res['algo_a']} vs {res['algo_b']} ---")
+            print(f"  Median: {res['median_a']:.2f} vs {res['median_b']:.2f}")
+            print(f"  Mann-Whitney U = {res['u_stat']:.1f}, p_raw = {res['p_value']:.6f}, p_adj(Holm) = {p_adj:.6f}")
+            print(f"  Effect: |r| = {res['effect_r']:.3f} ({res['effect_magnitude']})")
+    return output
+
+
+def perform_u_test_mannwhitney(all_results, alpha, verbose=True):
+    """Pairwise Mann-Whitney U tests with Holm correction (independent runs).
+
+    The historical version of this function delegated to a paired Friedman and
+    Wilcoxon analysis, which does not apply to independent runs of different
+    algorithms. Returns only the ``pairwise`` list so existing callers keep
+    working.
+    """
+    result = perform_independent_statistical_test(all_results, alpha, verbose=verbose)
     return result['pairwise']

@@ -26,7 +26,7 @@ import numpy as np
 
 from data.instance_model import InstanceContext
 from simulation.result_model import ScheduleSolution, SolverOutput
-from simulation.scheduler import calculate_schedule_fitness
+from simulation.scheduler import calculate_schedule_fitness, evaluate_solution, objective_from  # noqa: F401
 
 
 IterationCallback = Callable[..., None]
@@ -83,6 +83,7 @@ class HybridResult:
     move_counts: dict[str, int] = field(default_factory=dict)
     move_values: dict[str, float] = field(default_factory=dict)
     mutations: int = 0
+    wait_violations: int = 0
 
 
 class _Data(dict):
@@ -98,18 +99,12 @@ class _Data(dict):
         self.context = context
 
 
-def _waits(details: list[dict[str, Any]]) -> tuple[float, float]:
-    """Espera total y máxima entre anestesia y cirugía, como en el evaluador."""
-    end_first: dict[int, float] = {}
-    waits: list[float] = []
-    for item in details:
-        if item["Operation"] == 1:
-            end_first[item["Job"]] = item["ProcessingEnd"]
-    for item in details:
-        if item["Operation"] == 2:
-            start = item["Start"] + item["TransitionUsed"] + item["SetupUsed"]
-            waits.append(max(0.0, start - end_first[item["Job"]]))
-    return (sum(waits), max(waits)) if waits else (0.0, 0.0)
+def _waits(context: InstanceContext, solution: dict[str, Any]) -> tuple[float, float, int]:
+    """Espera total, espera máxima y trabajos sobre su límite, según el evaluador."""
+    decoded = evaluate_solution(context, solution)
+    if decoded is None:
+        return math.inf, math.inf, -1
+    return decoded.total_wait, decoded.max_wait, decoded.wait_violations
 
 
 class _ValueLearner:
@@ -453,11 +448,13 @@ def run_hybrid(
             }
         )
 
-    total_wait, max_wait = _waits(gbest_details) if gbest_details else (math.inf, math.inf)
     solution = (
         {"job_sequence_base": gbest_sequence, "room_assignment": gbest_rooms}
         if gbest_sequence is not None
         else None
+    )
+    total_wait, max_wait, wait_violations = (
+        _waits(context, solution) if solution is not None else (math.inf, math.inf, -1)
     )
     return HybridResult(
         best_value=gbest_value,
@@ -465,6 +462,7 @@ def run_hybrid(
         makespan=gbest_makespan,
         total_wait=total_wait,
         max_wait=max_wait,
+        wait_violations=wait_violations,
         evaluations=evaluations,
         elapsed=time.perf_counter() - started,
         best_history=best_history,
@@ -484,8 +482,9 @@ def run(
 ) -> SolverOutput:
     """Entrada ``MH`` del repositorio: variante completa de dos niveles.
 
-    El presupuesto es ``population_size * max_iterations`` llamadas al
-    evaluador, de modo que el historial tiene una entrada por iteración.
+    El presupuesto es ``evaluation_budget`` llamadas al evaluador, el mismo de
+    los demás algoritmos. Si no está definido, es ``population_size *
+    max_iterations``.
     """
     import config.config as config
 
@@ -495,9 +494,10 @@ def run(
     settings = dict(getattr(config, "MH_CONFIG", {}) or {})
     swarm_size = max(1, int(config.MH_POP_SIZE))
     iterations = max(1, int(config.MH_MAX_ITERATIONS))
+    budget = getattr(config, "EVALUATION_BUDGET", None)
     params = HybridParams(
         swarm_size=swarm_size,
-        budget=swarm_size * iterations,
+        budget=int(budget) if budget is not None else swarm_size * iterations,
         block=int(settings.get("block", HybridParams.block)),
         fixed_p=float(settings.get("fixed_p", HybridParams.fixed_p)),
         epsilon=float(settings.get("epsilon", HybridParams.epsilon)),

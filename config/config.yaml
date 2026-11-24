@@ -17,6 +17,11 @@ algorithms:
   beta: 0.5
   gamma: 1.4
   delta: 100.0
+  # Penalty per minute that a surgery waits beyond its instance limit.
+  omega: 10.0
+  # Calls to the evaluator per run, equal for every algorithm. When set,
+  # it replaces max_iterations/max_generations as the stopping rule.
+  evaluation_budget: 30000
   ga:
     enabled: true
     max_generations: 1000

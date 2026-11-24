@@ -31,13 +31,23 @@ def _instance_solution(context: InstanceContext, rng: random.Random) -> dict[str
 
 
 def _instance_fitness(context: InstanceContext, solution: dict[str, Any]) -> float:
-    from simulation.scheduler import schedule_instance_solution
+    """Composite objective shared by every algorithm (``inf`` if undecodable).
 
-    try:
-        makespan, _ = schedule_instance_solution(context, solution)
-    except (TypeError, ValueError, KeyError):
-        return float("inf")
-    return float(makespan)
+    The historical dMShOA minimized the makespan of a different, serial decoder
+    with hard wait limits, so it optimized another problem than the algorithms
+    it was compared with and found no feasible schedule on 30+ job instances.
+    """
+    from simulation.scheduler import evaluate_solution, objective_from
+
+    decoded = evaluate_solution(context, solution)
+    return float("inf") if decoded is None else float(objective_from(decoded))
+
+
+def _instance_makespan(context: InstanceContext, solution: dict[str, Any]) -> float:
+    from simulation.scheduler import evaluate_solution
+
+    decoded = evaluate_solution(context, solution)
+    return float("inf") if decoded is None else float(decoded.makespan)
 
 
 def run(context: InstanceContext, seed: int, on_iteration=None):
@@ -66,7 +76,16 @@ def run(context: InstanceContext, seed: int, on_iteration=None):
         MSHOA_LOWER_BOUND, MSHOA_UPPER_BOUND, (population_size, dim_total)
     )
     solutions = [_instance_solution(context, py_rng) for _ in range(population_size)]
+    import config.config as config
+
+    budget = config.EVALUATION_BUDGET
+    evaluations = 0
+    if budget is not None and budget < population_size:
+        solutions = solutions[: max(1, budget)]
+        positions = positions[: len(solutions)]
+        population_size = len(solutions)
     fitness = np.array([_instance_fitness(context, item) for item in solutions])
+    evaluations += population_size
 
     best_index = int(np.argmin(fitness))
     best_value = float(fitness[best_index])
@@ -76,8 +95,14 @@ def run(context: InstanceContext, seed: int, on_iteration=None):
     best_history: list[float] = []
     average_history: list[float] = []
 
-    for step in range(iterations):
+    step = -1
+    while (budget is None and step + 1 < iterations) or (
+        budget is not None and evaluations < budget
+    ):
+        step += 1
         for index in range(population_size):
+            if budget is not None and evaluations >= budget:
+                break
             current = positions[index]
             if pti[index] == 1 and population_size > 1:
                 peers = [peer for peer in range(population_size) if peer != index]
@@ -115,6 +140,7 @@ def run(context: InstanceContext, seed: int, on_iteration=None):
                     room_index += 1
 
             candidate_fitness = _instance_fitness(context, candidate)
+            evaluations += 1
             if candidate_fitness < fitness[index]:
                 positions[index] = candidate_position
                 solutions[index] = candidate
@@ -132,9 +158,8 @@ def run(context: InstanceContext, seed: int, on_iteration=None):
         average_history.append(float(np.mean(finite)) if len(finite) else float("inf"))
         if on_iteration is not None:
             from core.iteration_callback import serialize_solution
-            from simulation.scheduler import schedule_instance_solution
 
-            best_makespan, _ = schedule_instance_solution(context, best_solution)
+            best_makespan = _instance_makespan(context, best_solution)
             on_iteration(
                 algo_step=step + 1,
                 best_fitness=best_value,

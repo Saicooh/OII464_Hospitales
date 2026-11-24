@@ -90,6 +90,30 @@ Los cuatro nombres aparecen igual en los CSV y en los gráficos. No se debe
 interpretar `dMShOA` como una segunda variante: es la única entrada de ese
 algoritmo.
 
+### Modelo de evaluación
+
+Todos los algoritmos, los reportes y la ruta tipada usan el mismo modelo
+(`simulation/scheduler.py`):
+
+- Una solución es un orden de prioridad de los trabajos y una sala por
+  operación. El evaluador programa, en cada paso, la operación que puede
+  empezar antes; ante un empate, las cirugías van primero y luego el orden de
+  prioridad.
+- Cada operación ocupa su sala y su profesional durante la preparación
+  (`max(transición, preparación)`), el procesamiento y la limpieza.
+- **Bloqueo:** el paciente anestesiado espera en la sala de anestesia con su
+  anestesista hasta que empieza la cirugía. Si la cirugía es en otra sala, la
+  sala de anestesia se limpia cuando el paciente sale.
+- La **espera** de un trabajo va desde el fin de la anestesia hasta el inicio
+  de la cirugía. Superar el límite de la instancia no es infactible: se
+  penaliza en la función objetivo.
+
+La función objetivo es
+`f = Cmax + alpha·ΣS + beta·ΣW + gamma·máx W + delta·Ψ + omega·Σ máx(0, W − límite)`,
+con los pesos de `config/config.yaml`. El bloque `algorithms` también define
+`evaluation_budget`: todos los algoritmos se detienen tras el mismo número de
+llamadas al evaluador. Si se elimina, vuelven a detenerse por iteraciones.
+
 ### Espacio para la metaheurística de los alumnos
 
 El repositorio incluye una quinta entrada opcional llamada `MH`. Su plantilla
