@@ -1,0 +1,30 @@
+[INICIO] 2026-11-23T21:53:49-03:00 job=23635_3 nodo=computo-03 cpus=40 carriles=2 workers/carril=20
+python 3.11.9 | numpy 2.4.1
+[21:53:50] carril 1: final_22
+[21:53:50] carril 2: final_23
+[21:57:16] carril 1: final_22 OK (206 s)
+[21:57:16] carril 1: final_6
+[21:57:18] carril 2: final_23 OK (208 s)
+[21:57:18] carril 2: final_14
+[21:58:49] carril 2: final_14 OK (91 s)
+[21:58:49] carril 2: final_12
+[21:58:52] carril 1: final_6 OK (96 s)
+[21:58:52] carril 1: final_13
+[22:00:05] carril 2: final_12 OK (76 s)
+[22:00:05] carril 2: final_11
+[22:00:07] carril 1: final_13 OK (75 s)
+[22:00:07] carril 1: sens_1
+[22:00:59] carril 1: sens_1 OK (52 s)
+[22:00:59] carril 1: final_1
+[22:01:03] carril 2: final_11 OK (58 s)
+[22:01:03] carril 2: final_8
+[22:01:46] carril 1: final_1 OK (47 s)
+[22:01:49] carril 2: final_8 OK (46 s)
+[FIN] 2026-11-23T22:01:49-03:00 unidades sin terminar en toda la cola: 0
+25 partes, 5250 corridas, 25 instancias -> results/final
+OK    results/final/runs.csv: 5250 filas, 25 instancias, 7 variantes
+OK    results/sensibilidad/L3/runs.csv: 160 filas, 8 instancias, 1 variantes
+OK    results/sensibilidad/L10/runs.csv: 160 filas, 8 instancias, 1 variantes
+OK    results/sensibilidad/e005/runs.csv: 160 filas, 8 instancias, 1 variantes
+OK    results/sensibilidad/e02/runs.csv: 160 filas, 8 instancias, 1 variantes
+[OK] /work/jose.lara/OII464_Hospitales/resultados_hpc.tar.gz (15M)

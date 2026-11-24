@@ -1,0 +1,41 @@
+{
+  "split": "desarrollo",
+  "instances": [
+    "instances/standard/HOSP-STD-15-01.yaml",
+    "instances/standard/HOSP-STD-20-01.yaml",
+    "instances/standard/HOSP-STD-25-01.yaml",
+    "instances/standard/HOSP-STD-30-01.yaml",
+    "instances/hospital_12rooms/HOSP-12R-15-01.yaml",
+    "instances/hospital_12rooms/HOSP-12R-20-01.yaml",
+    "instances/hospital_12rooms/HOSP-12R-25-01.yaml",
+    "instances/hospital_12rooms/HOSP-12R-30-01.yaml"
+  ],
+  "methods": [
+    "dos_niveles"
+  ],
+  "seeds": 20,
+  "first_seed": 1,
+  "params": {
+    "swarm_size": 30,
+    "budget": 10000,
+    "block": 5,
+    "probabilities": [
+      0.05,
+      0.15,
+      0.3
+    ],
+    "fixed_p": 0.15,
+    "epsilon": 0.05,
+    "eta": 0.2,
+    "eta_move": 0.05,
+    "improvement_tolerance": 1e-06,
+    "w": 0.7,
+    "c1": 1.5,
+    "c2": 1.5,
+    "vel_low": -4.0,
+    "vel_high": 4.0
+  },
+  "python": "3.11.9 (main, Apr 19 2024, 16:48:06) [GCC 11.2.0]",
+  "platform": "Linux-4.18.0-477.10.1.el8_8.x86_64-x86_64-with-glibc2.28",
+  "processor": "x86_64"
+}

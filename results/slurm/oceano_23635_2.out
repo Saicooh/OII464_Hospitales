@@ -1,0 +1,21 @@
+[INICIO] 2026-11-23T21:53:49-03:00 job=23635_2 nodo=computo-02 cpus=40 carriles=2 workers/carril=20
+python 3.11.9 | numpy 2.4.1
+[21:53:50] carril 2: final_20
+[21:53:50] carril 1: final_21
+[21:56:38] carril 1: final_21 OK (168 s)
+[21:56:38] carril 1: final_16
+[21:56:39] carril 2: final_20 OK (169 s)
+[21:56:39] carril 2: final_18
+[21:58:43] carril 1: final_16 OK (125 s)
+[21:58:43] carril 1: final_15
+[21:58:45] carril 2: final_18 OK (126 s)
+[21:58:45] carril 2: final_4
+[22:00:06] carril 2: final_4 OK (81 s)
+[22:00:06] carril 2: sens_0
+[22:00:14] carril 1: final_15 OK (91 s)
+[22:00:14] carril 1: sens_2
+[22:00:57] carril 2: sens_0 OK (51 s)
+[22:00:57] carril 2: sens_3
+[22:01:05] carril 1: sens_2 OK (51 s)
+[22:01:42] carril 2: sens_3 OK (45 s)
+[FIN] 2026-11-23T22:01:42-03:00 unidades sin terminar en toda la cola: 4
