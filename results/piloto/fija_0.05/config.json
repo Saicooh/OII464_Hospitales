@@ -1,0 +1,41 @@
+{
+  "split": "desarrollo",
+  "instances": [
+    "instances/standard/HOSP-STD-15-01.yaml",
+    "instances/standard/HOSP-STD-20-01.yaml",
+    "instances/standard/HOSP-STD-25-01.yaml",
+    "instances/standard/HOSP-STD-30-01.yaml",
+    "instances/hospital_12rooms/HOSP-12R-15-01.yaml",
+    "instances/hospital_12rooms/HOSP-12R-20-01.yaml",
+    "instances/hospital_12rooms/HOSP-12R-25-01.yaml",
+    "instances/hospital_12rooms/HOSP-12R-30-01.yaml"
+  ],
+  "methods": [
+    "fija"
+  ],
+  "seeds": 20,
+  "first_seed": 1,
+  "params": {
+    "swarm_size": 30,
+    "budget": 10000,
+    "block": 5,
+    "probabilities": [
+      0.05,
+      0.15,
+      0.3
+    ],
+    "fixed_p": 0.05,
+    "epsilon": 0.1,
+    "eta": 0.2,
+    "eta_move": 0.05,
+    "improvement_tolerance": 1e-06,
+    "w": 0.7,
+    "c1": 1.5,
+    "c2": 1.5,
+    "vel_low": -4.0,
+    "vel_high": 4.0
+  },
+  "python": "3.13.18 (main, Oct 26 2026, 14:10:48) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD"
+}
