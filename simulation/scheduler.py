@@ -240,11 +240,28 @@ def _fitness_for_context(
     while operations_done < total_operations:
         if not queue:
             return (float("inf"), float("inf"), []) if return_details else float("inf")
-        _, _, _, job_id, operation_id = heapq.heappop(queue)
+        key, priority_key, counter_key, job_id, operation_id = heapq.heappop(queue)
         operation = operations[(job_id, operation_id)]
         room = assignments[job_id].get(operation_id)
         if room not in operation.eligible_rooms:
             return (float("inf"), float("inf"), []) if return_details else float("inf")
+        # Ready times stored in the queue become stale once other operations
+        # occupy rooms and personnel.  Without refreshing them, every
+        # anesthesia (pushed with ready time 0) is dispatched before any
+        # surgery, which inflates waits.  Recompute the ready time and, if it
+        # moved, reinsert the operation so the earliest ready one goes first.
+        ready = max(
+            room_release[room],
+            min(
+                (personnel_release[person] for person in operation.eligible_personnel),
+                default=float("inf"),
+            ),
+        )
+        if operation_id > 1:
+            ready = max(ready, job_processing_end[job_id][operation_id - 1])
+        if ready > key + 1e-9:
+            heapq.heappush(queue, (ready, priority_key, counter_key, job_id, operation_id))
+            continue
         personnel = min(
             operation.eligible_personnel,
             key=lambda person: (personnel_release[person], person),
