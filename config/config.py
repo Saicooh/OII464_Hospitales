@@ -124,6 +124,12 @@ ALPHA = float(ALG_CONFIG.get("alpha", 1.0e-6))
 BETA = float(ALG_CONFIG.get("beta", 0.5))
 GAMMA = float(ALG_CONFIG.get("gamma", 1.4))
 DELTA = float(ALG_CONFIG.get("delta", 100.0))
+# Penalty per minute of wait above each surgery's instance limit.
+OMEGA = float(ALG_CONFIG.get("omega", 10.0))
+# Evaluator calls per run, shared by every algorithm. None keeps the historical
+# iteration-based stopping rules.
+_budget = ALG_CONFIG.get("evaluation_budget")
+EVALUATION_BUDGET = None if _budget in (None, "", 0) else int(_budget)
 
 GA_CONFIG = dict(ALG_CONFIG.get("ga", {}))
 GA_ENABLED = bool(GA_CONFIG.get("enabled", False))

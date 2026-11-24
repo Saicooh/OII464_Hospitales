@@ -257,7 +257,9 @@ def export_statistical_analysis(comparison_results, filename):
                 for k, v in row.items():
                     if k in ("p_value", "p_adjusted"):
                         if isinstance(v, (int, float, np.floating)):
-                            formatted_row[k] = "≥0.05" if v >= 0.05 else f"{v:.4f}"
+                            # Report the exact value: hiding p >= 0.05 behind a
+                            # threshold loses information needed for papers.
+                            formatted_row[k] = f"{v:.4g}"
                         else:
                             formatted_row[k] = v
                     else:
@@ -559,12 +561,14 @@ def export_routing_explanation_csv(schedule_details, filename):
         personnel_last_finish = {}
         op1_finish = {}  # job -> op1 finish time
 
-        # First pass: map op1 finish times for job ready time
+        # First pass: the patient is ready for surgery when anesthesia
+        # processing ends. (Finish also covers cleanup and, with blocking, the
+        # time the patient waits in the anesthesia room.)
         for t in sorted_tasks:
             job = t.get("Job")
             op = t.get("Operation")
             if op == 1:
-                op1_finish[job] = t.get("Finish", 0.0)
+                op1_finish[job] = t.get("ProcessingEnd", t.get("Finish", 0.0))
 
         headers = [
             "job_id",
@@ -592,7 +596,8 @@ def export_routing_explanation_csv(schedule_details, filename):
                 start = t.get("Start", 0.0)
                 setup_used = t.get("SetupUsed") or 0.0
                 trans_used = t.get("TransitionUsed") or 0.0
-                time_before_proc = setup_used + trans_used
+                # Preparation lasts max(setup, transition), as in the evaluator.
+                time_before_proc = max(setup_used, trans_used)
                 proc_start = start + time_before_proc
                 finish = t.get("Finish", 0.0)
 

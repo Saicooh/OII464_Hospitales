@@ -16,7 +16,7 @@ import numpy as np
 
 from data.instance_model import InstanceContext
 from simulation.result_model import ScheduleSolution, SolverOutput
-from simulation.scheduler import schedule_instance_solution
+from simulation.scheduler import evaluate_solution, objective_from
 
 
 IterationCallback = Callable[..., None]
@@ -55,12 +55,17 @@ def _random_solution(
 
 
 def _fitness(context: InstanceContext, solution: dict[str, Any]) -> float:
-    """Return the makespan or infinity when the candidate is infeasible."""
-    try:
-        makespan, _ = schedule_instance_solution(context, solution)
-    except (IndexError, KeyError, TypeError, ValueError):
-        return float("inf")
-    return float(makespan)
+    """Return the composite objective shared by every algorithm.
+
+    Returns infinity when the candidate cannot be decoded into a schedule.
+    """
+    decoded = evaluate_solution(context, solution)
+    return float("inf") if decoded is None else float(objective_from(decoded))
+
+
+def _makespan(context: InstanceContext, solution: dict[str, Any]) -> float:
+    decoded = evaluate_solution(context, solution)
+    return float("inf") if decoded is None else float(decoded.makespan)
 
 
 def run(
@@ -73,6 +78,7 @@ def run(
     Keep this signature when replacing the starter algorithm. The scheduler
     resolves personnel when no explicit personnel assignment is provided.
     """
+    import config.config as config
     from config.config import MH_MAX_ITERATIONS, MH_POP_SIZE, VERBOSE_MODE
     from core.iteration_callback import serialize_solution
 
@@ -87,12 +93,24 @@ def run(
     best_history: list[float] = []
     average_history: list[float] = []
 
+    # Every algorithm stops after the same number of evaluator calls when
+    # ``evaluation_budget`` is set; otherwise after ``max_iterations``.
+    budget = config.EVALUATION_BUDGET
+    evaluations = 0
+
     # TODO: replace this random-restart loop with the group's metaheuristic.
-    for step in range(iterations):
+    step = -1
+    while (budget is None and step + 1 < iterations) or (
+        budget is not None and evaluations < budget
+    ):
+        step += 1
         iteration_values: list[float] = []
         for _ in range(population_size):
+            if budget is not None and evaluations >= budget:
+                break
             candidate = _random_solution(context, rng)
             value = _fitness(context, candidate)
+            evaluations += 1
             iteration_values.append(value)
             if value < best_value:
                 best_value = value
@@ -106,14 +124,14 @@ def run(
             on_iteration(
                 algo_step=step + 1,
                 best_fitness=best_value,
-                best_makespan=best_value,
+                best_makespan=_makespan(context, best_solution),
                 iteration_fitness=average_history[-1],
-                iteration_makespan=best_value,
+                iteration_makespan=_makespan(context, best_solution),
                 best_solution_snapshot=serialize_solution(best_solution),
             )
 
         if VERBOSE_MODE:
-            print(f"  -> Iter {step + 1}/{iterations}, Best Fitness: {best_value:.2f}")
+            print(f"  -> Iter {step + 1}, Best Fitness: {best_value:.2f}")
 
     if best_solution is None:
         raise RuntimeError("MH did not produce a feasible schedule solution")

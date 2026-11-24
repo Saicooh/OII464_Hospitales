@@ -20,6 +20,7 @@ from config.config import (
     PABELLONES,
     VERBOSE_MODE,
 )
+from algorithms._eligibility import cyclic_room_assignment, eligible_room_table
 from simulation.scheduler import calculate_schedule_fitness
 
 # --- dPSO-Specific Helper Classes and Functions ---
@@ -34,28 +35,17 @@ def sigmoid(x):
 class DiscreteParticle:
     """Represents a particle in the dPSO discrete space."""
 
-    def __init__(self, job_ids):
+    def __init__(self, job_ids, eligible=None):
         self.job_ids = job_ids
         self.num_jobs = len(job_ids)
 
         # Discrete position (problem solution)
         self.position_sequence = random.sample(self.job_ids, self.num_jobs)
 
-        # GUARANTEED BALANCED: Ensure every room gets at least one job
-        num_jobs = len(self.job_ids)
-
-        # Create cyclic assignment lists
-        # Create cyclic assignment lists
-        pab_cycle1 = (PABELLONES * ((num_jobs // len(PABELLONES)) + 1))[:num_jobs]
-        pab_cycle2 = (PABELLONES * ((num_jobs // len(PABELLONES)) + 1))[:num_jobs]
-
-        # Shuffle to add randomness while maintaining balance
-        random.shuffle(pab_cycle1)
-        random.shuffle(pab_cycle2)
-
-        self.position_rooms = {}
-        for idx, job in enumerate(self.job_ids):
-            self.position_rooms[job] = {1: pab_cycle1[idx], 2: pab_cycle2[idx]}
+        # Balanced cyclic room assignment that respects room eligibility
+        self.position_rooms = cyclic_room_assignment(
+            self.job_ids, PABELLONES, eligible if eligible is not None else {}
+        )
 
         # Continuous velocity (used to guide the search)
         self.velocity_seq = np.random.uniform(
@@ -117,7 +107,8 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     num_jobs = len(job_ids)
 
     # Initialize swarm of particles
-    swarm = [DiscreteParticle(job_ids) for _ in range(SWARM_SIZE_DPSO)]
+    eligible = eligible_room_table(surgeries_data, PABELLONES)
+    swarm = [DiscreteParticle(job_ids, eligible) for _ in range(SWARM_SIZE_DPSO)]
 
     # Initialize global best solution (gbest)
     gbest_sequence = None
@@ -128,8 +119,19 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     best_fitness_history = []
     avg_fitness_history = []
 
+    import config.config as config
+
+    # Every algorithm stops after the same number of evaluator calls when
+    # ``evaluation_budget`` is set; otherwise after MAX_ITERATIONS_DPSO.
+    budget = config.EVALUATION_BUDGET
+    evaluations = 0
+
     print_interval = max(1, MAX_ITERATIONS_DPSO // 4)
-    for iteration in range(MAX_ITERATIONS_DPSO):
+    iteration = -1
+    while (budget is None and iteration + 1 < MAX_ITERATIONS_DPSO) or (
+        budget is not None and evaluations < budget
+    ):
+        iteration += 1
         current_fitnesses = []
         iter_best_value = float("inf")
         iter_best_sol = (
@@ -137,7 +139,10 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
         )
         # Evaluate each particle and update pbest/gbest
         for particle in swarm:
+            if budget is not None and evaluations >= budget:
+                break
             solution_representation = particle.get_discrete_position_representation()
+            evaluations += 1
             fitness = calculate_schedule_fitness(
                 solution_representation, surgeries_data
             )
@@ -198,7 +203,7 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
             if (
                 iteration == 0
                 or (iteration + 1) % print_interval == 0
-                or iteration == MAX_ITERATIONS_DPSO - 1
+                or (budget is None and iteration == MAX_ITERATIONS_DPSO - 1)
             ):
                 print(
                     f"  -> Iter {iteration + 1}/{MAX_ITERATIONS_DPSO}, Best Fitness: {gbest_value:.2f} || Makespan (of Best Fitness): {gbest_makespan:.2f}"
@@ -306,7 +311,11 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
             indices = list(range(num_jobs))
             random.shuffle(indices)
             for k in indices:
-                if random.random() < prob_swap[k]:
+                # velocity_seq is indexed by job (see get_rank_vector), so the
+                # probability of moving position k must use the velocity of
+                # the job currently placed there, not of the job with index k.
+                job_at_k = particle.position_sequence[k]
+                if random.random() < prob_swap[job_id_to_index[job_at_k]]:
                     if num_jobs >= 2:
                         swap_idx = random.choice([idx for idx in range(num_jobs) if idx != k])
                         particle.position_sequence[k], particle.position_sequence[swap_idx] = (
@@ -356,9 +365,8 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
                         if source_rooms:
                             new_room = source_rooms[job_id][op]
                         else:
-                            # Random selection from available rooms
-                            room_lists = [PABELLONES, PABELLONES]
-                            new_room = random.choice(room_lists[op - 1])
+                            # Random selection from the eligible rooms
+                            new_room = random.choice(eligible.get((job_id, op), PABELLONES))
 
                         particle.position_rooms[job_id][op] = new_room
 

@@ -17,6 +17,7 @@ from config.config import (
     PABELLONES,
     VERBOSE_MODE,
 )
+from algorithms._eligibility import eligible_room_table
 from simulation.scheduler import calculate_schedule_fitness
 
 # --- SBOA-Specific Helper Functions ---
@@ -36,52 +37,50 @@ def levy_flight(dim, beta=1.5):
     return step
 
 
-def _balance_room_assignment(room_assignment, job_ids):
+def _balance_room_assignment(room_assignment, job_ids, eligible=None):
     """
     Applies a balancing heuristic to room assignments to avoid
     excessive concentration in a few rooms.
+
+    For each operation type, if one room holds more than 70 % of that type's
+    operations while other rooms hold none, some of its operations move to the
+    empty rooms. The heuristic is deterministic, so a position always decodes
+    to the same solution: the historical version shuffled the jobs with the
+    global random stream, which made the fitness of a position random and let
+    the returned solution differ from the evaluated one. It also counted the
+    usage of both operation types together; it now counts each type apart, as
+    its description states, and only moves an operation to an eligible room.
     """
-    # Check usage count per room
-    room_usage = {room: 0 for room in PABELLONES}
+    for op_num in (1, 2):
+        op_usage = {room: 0 for room in PABELLONES}
+        for job in job_ids:
+            op_usage[room_assignment[job][op_num]] += 1
 
-    for job in job_ids:
-        for op in [1, 2]:
-            room = room_assignment[job][op]
-            room_usage[room] += 1
-
-    # For each operation type, check if there's imbalance
-    room_lists = [PABELLONES, PABELLONES]
-    for op_idx, room_list in enumerate(room_lists):
-        op_num = op_idx + 1
-
-        # Calculate usage for this operation type
-        op_usage = {room: room_usage[room] for room in room_list}
-
-        # If one room has >50% of jobs and others have 0, redistribute
         total_usage = sum(op_usage.values())
-        if total_usage > 0:
-            max_usage_room = max(op_usage, key=op_usage.get)
-            max_usage = op_usage[max_usage_room]
+        if total_usage == 0:
+            continue
+        max_usage_room = max(op_usage, key=op_usage.get)
+        max_usage = op_usage[max_usage_room]
+        empty_rooms = [room for room in PABELLONES if op_usage[room] == 0]
+        if max_usage <= total_usage * 0.7 or not empty_rooms:
+            continue
 
-            # If concentration > 70% and there are empty rooms
-            if max_usage > total_usage * 0.7 and any(u == 0 for u in op_usage.values()):
-                # Redistribute some jobs to empty rooms
-                jobs_to_redistribute = []
-                for job in job_ids:
-                    if room_assignment[job][op_num] == max_usage_room:
-                        jobs_to_redistribute.append(job)
-
-                # Shuffle and reassign some to empty rooms
-                empty_rooms = [r for r in room_list if op_usage[r] == 0]
-                random.shuffle(jobs_to_redistribute)
-
-                for i, job in enumerate(jobs_to_redistribute[: len(empty_rooms)]):
-                    room_assignment[job][op_num] = empty_rooms[i]
+        jobs_to_redistribute = [
+            job for job in job_ids if room_assignment[job][op_num] == max_usage_room
+        ]
+        for job in jobs_to_redistribute:
+            if not empty_rooms:
+                break
+            options = (eligible or {}).get((job, op_num), PABELLONES)
+            target = next((room for room in empty_rooms if room in options), None)
+            if target is not None:
+                room_assignment[job][op_num] = target
+                empty_rooms.remove(target)
 
     return room_assignment
 
 
-def discretize_bird(position_vector, job_ids, apply_balancing=True):
+def discretize_bird(position_vector, job_ids, apply_balancing=True, eligible=None):
     """
     Decodes a continuous SBOA position vector into a discrete solution
     representation (sequence and room assignment).
@@ -90,22 +89,22 @@ def discretize_bird(position_vector, job_ids, apply_balancing=True):
         position_vector: Continuous position vector
         job_ids: List of job IDs
         apply_balancing: If True, applies balancing heuristic to room assignments
+        eligible: Optional map (job, operation) -> eligible rooms
     """
     num_jobs = len(job_ids)
 
     # Part 1: Decode the job sequence using Rank-Order-Value
     seq_part = position_vector[:num_jobs]
-    job_sequence_base = [job_ids[i] for i in np.argsort(seq_part)]
+    job_sequence_base = [job_ids[i] for i in np.argsort(seq_part, kind="stable")]
 
     # Part 2: Decode the room assignment
     room_part = position_vector[num_jobs:]
     room_assignment = {}
-    room_lists = [PABELLONES, PABELLONES]
     idx = 0
     for job in job_ids:
         room_assignment[job] = {}
         for op in [1, 2]:
-            room_list = room_lists[op - 1]
+            room_list = (eligible or {}).get((job, op), PABELLONES)
             val = room_part[idx]
             norm_val = (val - SBOA_LOWER_BOUND) / (SBOA_UPPER_BOUND - SBOA_LOWER_BOUND)
             room_index = min(int(norm_val * len(room_list)), len(room_list) - 1)
@@ -114,7 +113,7 @@ def discretize_bird(position_vector, job_ids, apply_balancing=True):
 
     # Apply balancing heuristic to avoid concentration
     if apply_balancing:
-        room_assignment = _balance_room_assignment(room_assignment, job_ids)
+        room_assignment = _balance_room_assignment(room_assignment, job_ids, eligible)
 
     return {"job_sequence_base": job_sequence_base, "room_assignment": room_assignment}
 
@@ -151,8 +150,19 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     random.seed(seed)
     np.random.seed(seed)
 
+    import config.config as config
+
     num_jobs = len(job_ids)
     dim_total = num_jobs + (num_jobs * 2)
+    # Every algorithm stops after the same number of evaluator calls when
+    # ``evaluation_budget`` is set. SBOA spends two evaluations per bird and
+    # iteration, so the budget fixes the iteration count T that sets its phases.
+    budget = config.EVALUATION_BUDGET
+    max_iter = SBOA_MAX_ITER
+    if budget is not None:
+        max_iter = max(1, -(-(budget - SBOA_POP_SIZE) // (2 * SBOA_POP_SIZE)))
+    evaluations = 0
+    eligible = eligible_room_table(surgeries_data, PABELLONES)
 
     # Initialization
     positions = np.random.uniform(
@@ -161,15 +171,16 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     fitness = np.full(SBOA_POP_SIZE, float("inf"))
 
     for i in range(SBOA_POP_SIZE):
-        discrete_sol = discretize_bird(positions[i], job_ids)
+        discrete_sol = discretize_bird(positions[i], job_ids, eligible=eligible)
         fitness[i] = calculate_schedule_fitness(discrete_sol, surgeries_data)
+        evaluations += 1
 
     best_idx = np.argmin(fitness)
     gbest_value = fitness[best_idx]
     gbest_position = positions[best_idx, :].copy()
 
     # NEW: Calculate initial makespan
-    gbest_solution = discretize_bird(gbest_position, job_ids)
+    gbest_solution = discretize_bird(gbest_position, job_ids, eligible=eligible)
     _, gbest_makespan, _ = calculate_schedule_fitness(
         gbest_solution, surgeries_data, return_details=True
     )
@@ -178,37 +189,42 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
     avg_fitness_history = []
 
     # Calculate the interval to print 4 times during the process
-    print_interval = max(1, SBOA_MAX_ITER // 4)
+    print_interval = max(1, max_iter // 4)
 
-    for t in range(SBOA_MAX_ITER):
+    for t in range(max_iter):
         new_evals = []  # Collect (fitness, position) for all newly evaluated candidates
         for i in range(SBOA_POP_SIZE):
             current_pos = positions[i, :].copy()
             current_fit = fitness[i]
 
             # --- Exploration Phase (Hunting) ---
-            if t < SBOA_MAX_ITER / 3:
+            if t < max_iter / 3:
                 r_indices = np.random.choice(
                     np.delete(np.arange(SBOA_POP_SIZE), i), 2, replace=False
                 )
                 r1, r2 = positions[r_indices[0], :], positions[r_indices[1], :]
                 new_pos_p1 = current_pos + (r1 - r2) * np.random.rand(dim_total)
-            elif t < 2 * SBOA_MAX_ITER / 3:
+            elif t < 2 * max_iter / 3:
                 term = (
-                    np.exp((t / SBOA_MAX_ITER) ** 4)
+                    np.exp((t / max_iter) ** 4)
                     * (np.random.randn(dim_total) - 0.5)
                     * (gbest_position - current_pos)
                 )
                 new_pos_p1 = gbest_position + term
             else:
-                perturbation = (1 - t / SBOA_MAX_ITER) ** (2 * t / SBOA_MAX_ITER)
+                # Fu et al. (2024), attacking stage: RL = 0.5 * Levy(dim). The
+                # historical code used 0.05, a step ten times smaller.
+                perturbation = (1 - t / max_iter) ** (2 * t / max_iter)
                 new_pos_p1 = gbest_position + perturbation * current_pos * (
-                    0.05 * levy_flight(dim_total)
+                    0.5 * levy_flight(dim_total)
                 )
 
+            if budget is not None and evaluations >= budget:
+                break
             new_pos_p1 = np.clip(new_pos_p1, SBOA_LOWER_BOUND, SBOA_UPPER_BOUND)
+            evaluations += 1
             new_fit_p1 = calculate_schedule_fitness(
-                discretize_bird(new_pos_p1, job_ids), surgeries_data
+                discretize_bird(new_pos_p1, job_ids, eligible=eligible), surgeries_data
             )
             new_evals.append((new_fit_p1, new_pos_p1))
 
@@ -218,7 +234,7 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
 
             # --- Exploitation Phase (Escape) ---
             if np.random.rand() < 0.5:
-                perturbation_factor = (1 - t / SBOA_MAX_ITER) ** 2
+                perturbation_factor = (1 - t / max_iter) ** 2
                 term = (
                     (2 * np.random.randn(dim_total) - 1)
                     * perturbation_factor
@@ -234,8 +250,13 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
                 )
 
             new_pos_p2 = np.clip(new_pos_p2, SBOA_LOWER_BOUND, SBOA_UPPER_BOUND)
+            if budget is not None and evaluations >= budget:
+                fitness[i] = current_fit
+                positions[i, :] = current_pos
+                break
+            evaluations += 1
             new_fit_p2 = calculate_schedule_fitness(
-                discretize_bird(new_pos_p2, job_ids), surgeries_data
+                discretize_bird(new_pos_p2, job_ids, eligible=eligible), surgeries_data
             )
             new_evals.append((new_fit_p2, new_pos_p2))
 
@@ -251,7 +272,7 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
         valid_new_evals = [(f, p) for f, p in new_evals if f != float("inf")]
         if valid_new_evals:
             best_new_fit, best_new_pos = min(valid_new_evals, key=lambda x: x[0])
-            iter_best_sol = discretize_bird(best_new_pos, job_ids)
+            iter_best_sol = discretize_bird(best_new_pos, job_ids, eligible=eligible)
             _, iter_makespan, _ = calculate_schedule_fitness(
                 iter_best_sol, surgeries_data, return_details=True
             )
@@ -264,7 +285,7 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
         if pop_best_value < gbest_value:
             gbest_value = pop_best_value
             gbest_position = positions[pop_best_idx, :].copy()
-            gbest_solution_tmp = discretize_bird(gbest_position, job_ids)
+            gbest_solution_tmp = discretize_bird(gbest_position, job_ids, eligible=eligible)
             _, gbest_makespan, _ = calculate_schedule_fitness(
                 gbest_solution_tmp, surgeries_data, return_details=True
             )
@@ -278,9 +299,9 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
 
         # Print at iteration 1 and then at intervals
         if VERBOSE_MODE:
-            if t == 0 or (t + 1) % print_interval == 0 or t == SBOA_MAX_ITER - 1:
+            if t == 0 or (t + 1) % print_interval == 0 or t == max_iter - 1:
                 print(
-                    f"  -> Iter {t + 1}/{SBOA_MAX_ITER}, Best Fitness: {gbest_value:.2f} || Makespan (of Best Fitness): {gbest_makespan:.2f}"
+                    f"  -> Iter {t + 1}/{max_iter}, Best Fitness: {gbest_value:.2f} || Makespan (of Best Fitness): {gbest_makespan:.2f}"
                 )
 
         # Emit snapshot for analysis mode instrumentation
@@ -288,7 +309,7 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
         if on_iteration is not None:
             from core.iteration_callback import serialize_solution
 
-            _gbest_sol = discretize_bird(gbest_position, job_ids)
+            _gbest_sol = discretize_bird(gbest_position, job_ids, eligible=eligible)
             on_iteration(
                 algo_step=t + 1,
                 best_fitness=gbest_value,
@@ -298,6 +319,6 @@ def run(surgeries_data, job_ids=None, seed=None, on_iteration=None):
                 best_solution_snapshot=serialize_solution(_gbest_sol),
             )
 
-    best_solution_overall = discretize_bird(gbest_position, job_ids)
+    best_solution_overall = discretize_bird(gbest_position, job_ids, eligible=eligible)
 
     return gbest_value, best_solution_overall, best_fitness_history, avg_fitness_history

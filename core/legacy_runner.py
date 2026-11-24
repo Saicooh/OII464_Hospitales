@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import time
 from pathlib import Path
 from typing import Any
@@ -87,6 +88,11 @@ def _run_one_simulation(
         try:
             raw = _invoke_solver(spec, data, simulation_index)
             objective, solution, best_history, average_history = _normalize_solver_output(raw)
+            if not math.isfinite(objective):
+                # The solver never reached a feasible solution. Re-decoding its
+                # fallback candidate would report a makespan for a schedule the
+                # solver itself rejected, so the simulation counts as failed.
+                raise ValueError("solver returned no feasible solution (objective is not finite)")
             fitness_result = calculate_schedule_fitness(
                 solution, data, return_details=True
             )
