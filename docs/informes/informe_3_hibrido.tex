@@ -47,16 +47,16 @@ Profesor Emanuel Vega}
 \begin{abstract}
 \noindent
 La planificación de cirugías electivas exige coordinar quirófanos y personal, respetando la
-precedencia entre anestesia y cirugía. Las metaheurísticas aplicadas a este problema fijan sus
-parámetros antes de ejecutar, y el control aprendido se ha estudiado sobre todo para elegir
-operadores en algoritmos evolutivos. Proponemos añadir a la optimización discreta por enjambre
+precedencia entre anestesia y cirugía. Los trabajos revisados sobre este problema fijan los
+parámetros de la búsqueda antes de ejecutar. El control aprendido, en cambio, se ha estudiado
+sobre todo para elegir operadores en algoritmos evolutivos. Proponemos añadir a la optimización discreta por enjambre
 de partículas (dPSO) un control de la perturbación en dos niveles. Un bandido multibrazo elige
 cada cinco iteraciones la probabilidad de mutar una partícula, y otro elige en cada mutación el
 movimiento aplicado. Comparamos siete variantes en 25 instancias sintéticas, con 30 semillas y
-$10\,000$ evaluaciones por corrida, incluida una ablación de ambos niveles. Antes, corregimos un
-error del evaluador del repositorio que inflaba las esperas. La prueba de Friedman no detecta
-diferencias entre variantes ($p=0\dc35$), y todas quedan a menos de un 1,2~\% de dPSO sin
-mutación. Añadir mutación empeora levemente la aptitud mediana (0,65~\%, en 17 de 25
+$10\,000$ evaluaciones por corrida, incluida una ablación de ambos niveles. Antes de comparar,
+corregimos un error del evaluador del repositorio que inflaba las esperas. La prueba de Friedman
+no detecta diferencias entre variantes ($p=0\dc35$), y todas quedan a menos de un 1,2~\% de dPSO
+sin mutación. Añadir mutación tiende a empeorar la aptitud mediana (0,65~\%; peor en 17 de 25
 instancias). Aprender la intensidad no aporta, porque las tres intensidades producen la misma
 mejora por bloque. Aprender el movimiento reduce el uso del cambio de sala, sin efecto apreciable
 en la aptitud. El control tiene un costo de tiempo despreciable.
@@ -80,12 +80,13 @@ con todos los trabajos conocidos al inicio.
 
 En este problema, cambiar el orden de atención altera la competencia por profesionales.
 Reasignar una sala, en cambio, modifica la distribución de carga. La frecuencia y el tipo de esas
-perturbaciones influyen en la búsqueda. Aplicarlas poco limita la exploración; aplicarlas
-demasiado interrumpe el progreso. Además, un mismo movimiento no tiene por qué ser igual de
-útil al comienzo y al final de una corrida. Sin embargo, las metaheurísticas aplicadas a la
+perturbaciones influyen en la búsqueda. En principio, aplicarlas poco limita la exploración y
+aplicarlas demasiado puede interrumpir el progreso. Además, un mismo movimiento no tiene por qué
+ser igual de útil al comienzo y al final de una corrida. Sin embargo, los trabajos revisados sobre
 programación quirúrgica fijan estos parámetros antes de ejecutar. Por otra parte, el control
-aprendido se ha estudiado para elegir operadores en algoritmos evolutivos. No se ha usado para
-regular cuánto se perturba un enjambre discreto (Sección~\ref{sec:arte}).
+aprendido se ha estudiado para elegir operadores en algoritmos evolutivos. En la bibliografía
+revisada no encontramos su uso para regular cuánto se perturba un enjambre discreto
+(Sección~\ref{sec:arte}).
 
 Nuestro objetivo es diseñar y evaluar un control de la perturbación que se añade a dPSO. El
 control aprende, durante la ejecución, la intensidad y el tipo de esa perturbación. Las
@@ -139,9 +140,9 @@ et~al.~\cite{ratnaweera2004} programan los coeficientes de aceleración y el tam
 mutación en función del tiempo. Zhan et~al.~\cite{zhan2009} clasifican el estado del enjambre
 y aplican reglas distintas en cada estado. Estos controles siguen un programa o unas
 reglas fijadas de antemano. Los dos últimos se evaluaron con funciones de prueba. El aprendizaje por refuerzo dentro
-de estos enjambres es más reciente~\cite{samma2016}. Las versiones discretas derivan de la
-propuesta binaria de Kennedy y Eberhart~\cite{kennedy1997}. Heredan esos parámetros, pero no
-un mecanismo de control equivalente. Por último, Talbi~\cite{talbi2021} y Karimi-Mamaghan et~al.~\cite{karimi2022} clasifican las
+de estos enjambres es más reciente~\cite{samma2016}. Las versiones discretas, como la del
+repositorio, derivan de la propuesta binaria de Kennedy y Eberhart~\cite{kennedy1997}. La del
+repositorio hereda esos parámetros, pero no incluye ningún mecanismo de control. Por último, Talbi~\cite{talbi2021} y Karimi-Mamaghan et~al.~\cite{karimi2022} clasifican las
 formas de integrar aprendizaje automático en una metaheurística. La segunda revisión incluye
 entre ellas el ajuste de parámetros.
 
@@ -149,7 +150,7 @@ entre ellas el ajuste de parámetros.
 De este contraste se desprenden tres vacíos. Primero, el control mediante bandidos se ha
 aplicado a la elección entre operadores, no a la intensidad de la perturbación. Segundo, el
 control revisado en enjambres de partículas sigue programas o reglas y se ha validado con
-funciones de prueba. No se sabe, por tanto, si la
+funciones de prueba. Por tanto, no está claro si la
 retroalimentación de la búsqueda es aprovechable en una versión discreta con secuencias y
 asignaciones. Tercero, en la bibliografía revisada no encontramos un estudio que evalúe estos
 mecanismos en programación quirúrgica con un evaluador de calendarios. Tampoco encontramos uno
@@ -175,13 +176,13 @@ f(x)=\Cmax+\alpha\sum_{j\in J}\sum_{k\in K}S_{jk}+\beta\sum_{j\in J}W_j
 +\gamma\,\maxop_{j\in J}W_j+\delta\,\Psi .
 \label{eq:f}
 \end{equation}
-Sus términos son los siguientes. $\Cmax$ es el término de la última cirugía, incluida su
-limpieza. $S_{jk}$ es el inicio de preparación de cada operación. $W_j$ es el intervalo entre
+Sus términos son los siguientes. $\Cmax$ es el instante en que termina la última cirugía,
+incluida su limpieza. $S_{jk}$ es el inicio de preparación de cada operación. $W_j$ es el intervalo entre
 el fin de la anestesia y el inicio efectivo de la cirugía. $\Psi$ suma el coeficiente de
 variación del número de operaciones por sala y la penalización $m(m+1)$ por $m$ salas sin uso.
 Conservamos los pesos del repositorio: $\alpha=10^{-6}$, $\beta=0\dc5$, $\gamma=1\dc4$ y
 $\delta=100$. Además de $f$, informamos por separado $\Cmax$ y las esperas. La razón es que
-una reducción de $f$ puede deberse solo al balance de salas.
+$f$ puede bajar por menores esperas o por un mejor balance de salas, sin que la jornada se acorte.
 
 \subsection{Componentes y flujo de la arquitectura híbrida}
 
@@ -293,29 +294,28 @@ el propio archivo. No contienen datos de pacientes. Todas las salas son elegible
 operación; el personal elegible es un subconjunto por operación. Usamos las instancias sin
 preprocesamiento. La Tabla~\ref{tab:inst} muestra su división. Las instancias de verificación
 solo sirven para comprobar la implementación. Las de desarrollo sirven para fijar los
-parámetros. Las de prueba se ejecutaron solo después de cerrar la configuración. Nueve
+parámetros, y la configuración se fijó solo con ellas. Las de prueba sirven para comparar. Nueve
 instancias de prueba (40 a 60 trabajos) quedan fuera del rango de tamaños de desarrollo.
 Permiten observar el comportamiento al aumentar la escala.
 
 \begin{table}[htb]
 \centering\small
-\caption{División de las instancias. STD: familia estándar (6 a 9 salas); 12S: familia de doce salas.}
+\caption{División de las instancias. STD: familia estándar (6 a 9 salas); 12R: familia de doce salas.}
 \label{tab:inst}
 \begin{tabular}{@{}llcl@{}}
 \toprule
 Conjunto & Instancias & $n$ & Uso \\
 \midrule
 Verificación & didácticas de 3, 5, 8 y 10 trabajos & 4 & restricciones y contador de evaluaciones \\
-Desarrollo & réplica 01 de STD y 12S, 15 a 30 trabajos & 8 & elección de $p$ fija, piloto de tiempos \\
-Prueba & réplicas 02 y 03 de STD y 12S, 15 a 30 trabajos & 16 & comparación final \\
-       & réplicas 01 a 03 de 12S, 40 a 60 trabajos & 9 & comparación final, mayor escala \\
+Desarrollo & réplica 01 de STD y 12R, 15 a 30 trabajos & 8 & elección de $p$ fija, piloto, sensibilidad \\
+Prueba & réplicas 02 y 03 de STD y 12R, 15 a 30 trabajos & 16 & comparación final \\
+       & réplicas 01 a 03 de 12R, 40 a 60 trabajos & 9 & comparación final, mayor escala \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Métodos comparados.}
-Comparamos siete variantes de dPSO (Tabla~\ref{tab:met}). Para que la comparación sea justa,
-todas comparten el evaluador, el presupuesto y la población inicial de cada semilla. Las que
+Comparamos siete variantes de dPSO (Tabla~\ref{tab:met}). Todas comparten el evaluador, el presupuesto y la población inicial de cada semilla. Las que
 mutan comparten además los tres movimientos y el tratamiento de velocidades y memorias. A1 es
 la dPSO del repositorio, con la corrección descrita en la verificación previa. A2 usa el valor de $\mathcal{P}$ con menor rango promedio en
 desarrollo. A3 comparte el arranque de A5 y después elige $p$ uniformemente, sin usar $Q$. A4
@@ -349,10 +349,10 @@ A7 & aprendida & aprendido & propuesta completa \\
 Los parámetros de dPSO son los del repositorio: 30 partículas, inercia $w=0\dc7$, coeficientes
 $c_1=c_2=1\dc5$ y velocidades en $[-4,4]$. Los del control son
 $\mathcal{P}=\{0\dc05;\,0\dc15;\,0\dc30\}$, $L=5$, $\epsilon=0\dc1$, $\eta=0\dc2$ y
-$\eta_m=0\dc05$. Fijamos estos valores a priori, con los habituales para pasos constantes y
-exploración épsilon-voraz~\cite{sutton2018}. No los ajustamos. Con solo ocho instancias de
-desarrollo, una calibración fina favorecería a las variantes aprendidas frente a las de
-referencia. El único valor elegido con datos es la probabilidad de A2 y A6. Para ello
+$\eta_m=0\dc05$. Fijamos estos valores a priori y no los ajustamos. El valor $\epsilon=0\dc1$ es
+el de los ejemplos de Sutton y Barto~\cite{sutton2018}. Los pasos $\eta$ y $\eta_m$ son elección
+nuestra, menor en el nivel que recibe más observaciones. Calibrarlos con ocho instancias habría
+dado a las variantes aprendidas más parámetros ajustados que a las de referencia. El único valor elegido con datos es la probabilidad de A2 y A6. Para ello
 ejecutamos un piloto con las ocho instancias de desarrollo y 20 semillas. Los rangos promedio
 de la aptitud mediana fueron $1\dc50$ para $p=0\dc15$, $2\dc12$ para $p=0\dc05$ y $2\dc38$ para
 $p=0\dc30$. Por tanto, fijamos $p=0\dc15$. Como análisis complementario, medimos en desarrollo
@@ -377,9 +377,11 @@ instante en que cada operación quedaba lista y no lo actualizaba al ocuparse la
 todas las anestesias entraban listas en el instante cero, el evaluador programaba todas las
 anestesias antes que cualquier cirugía. Eso inflaba las esperas: con el evaluador original, la
 espera máxima mediana era de unos 125 minutos. Lo corregimos recalculando ese instante al
-extraer cada operación. El segundo error estaba en dPSO: la probabilidad de mover la posición
-$k$ usaba la velocidad del trabajo $k$, no la del trabajo ubicado en esa posición. Corregimos
-ambos errores, repetimos el piloto y descartamos los resultados previos. En las 1440 corridas
+extraer cada operación. El segundo estaba en la dPSO del repositorio, que nuestra implementación
+reproduce. La probabilidad de mover la posición $k$ usaba la velocidad del trabajo $k$, no la del
+trabajo ubicado en esa posición. Corregimos el evaluador en el repositorio y la dPSO en nuestra
+implementación. Después repetimos el piloto y descartamos todos los resultados previos, incluida
+una primera ejecución de la prueba final. En las 1440 corridas
 del piloto, todas las soluciones fueron factibles. Esto se debe a que el evaluador aplica como
 límite de espera el mayor entre el de la instancia y una cota global de $10\,000$ minutos. Por
 ello, el límite propio de cada trabajo (18 a 76 minutos) no actúa como restricción, y las
@@ -388,13 +390,14 @@ variantes e informamos cuántos trabajos superan su límite.
 
 \paragraph{Entorno.}
 La implementación está en Python con NumPy~2.4. Usa la entrada que el repositorio reserva
-para la metaheurística de los alumnos, por lo que conserva su interfaz y su evaluador. El piloto
-se ejecutó en un equipo con procesador AMD Ryzen~5~9600 (6 núcleos, 12 hilos), 32~GB de memoria,
-Windows~11 y Python~3.13. Allí, una corrida tardó entre $2\dc8$~s (15 trabajos) y $5\dc4$~s (30
-trabajos). La prueba final y el análisis de sensibilidad se ejecutaron en el clúster Océano, con
+para la metaheurística de los alumnos. Por eso conserva su interfaz y su evaluador, este último
+con la corrección descrita. El piloto se ejecutó en un equipo con procesador AMD
+Ryzen~5~9600 (6 núcleos, 12 hilos), 32~GB de memoria, Windows~11 y Python~3.13. Allí, una corrida
+tardó en mediana entre $2\dc8$~s (15 trabajos) y $5\dc4$~s (30 trabajos). La prueba final y el análisis de sensibilidad se ejecutaron en el clúster Océano, con
 Linux y Python~3.11, mediante el gestor de colas SLURM. Usamos tres tareas de 40 núcleos en
-nodos distintos, con una corrida por núcleo. Junto con los resultados registramos las semillas,
-los parámetros, la versión del intérprete y el equipo.
+nodos distintos, con una corrida por núcleo. Tres corridas de la prueba repetidas en el equipo
+local dieron exactamente la misma aptitud que en el clúster. Junto con los resultados
+registramos las semillas, los parámetros, la versión del intérprete y el equipo.
 
 \paragraph{Medidas.}
 Por corrida registramos la aptitud final $f$, $\Cmax$, la espera total y la máxima, el tiempo de
@@ -402,7 +405,8 @@ ejecución y el número de mutaciones. Para las variantes con control guardamos,
 acción elegida, la recompensa y los valores $Q$ y $V$. También guardamos, por corrida, el número
 de usos de cada movimiento. Resumimos la calidad por instancia con la mediana y el rango
 intercuartílico de las 30 corridas. En el piloto, ese rango fue en promedio el 7,7~\% de la
-mediana. Esta dispersión justifica usar medianas y 30 repeticiones. Las curvas de mejor aptitud
+mediana, más que las diferencias entre variantes observadas allí (hasta un 3~\%). Por eso
+resumimos con medianas y usamos 30 repeticiones. Las curvas de mejor aptitud
 frente al número de evaluaciones describen el progreso. La frecuencia de cada acción a lo largo
 de la corrida describe lo que aprende el control.
 
@@ -478,18 +482,20 @@ P3 & A6 frente a A2 & $+0{,}28$ & 10/0/15 & 0,474 & 1,00 \\
 \end{table}
 
 \paragraph{P1: añadir perturbación.}
-La mutación no mejora a dPSO; la empeora levemente. A2 eleva la mediana de $f$ un 0,65~\%
+La mutación no mejora a dPSO y tiende a empeorarla. A2 eleva la mediana de $f$ un 0,65~\%
 frente a A1 y pierde en 17 de las 25 instancias ($p=0\dc007$; $p_{\text{Holm}}=0\dc034$). El
 signo se repite en ambos tamaños: $+0{,}89$~\% con 15 a 30 trabajos (10 de 16 instancias
 perdidas) y $+0{,}58$~\% con 40 a 60 (7 de 9). Este resultado invierte el del piloto, donde A2
 mejoraba a A1 un 1,55~\% en 6 de las 8 instancias de desarrollo. La Figura~\ref{fig:conv}
-muestra el mismo patrón: desde unas 3000 evaluaciones, A1 queda bajo las demás variantes. Las
-curvas siguen bajando al agotar el presupuesto, de modo que ninguna variante converge. Una
-explicación posible está en la propia dPSO. Su actualización intercambia cada posición con
-probabilidad $1/(1+e^{-v})$, que vale $0\dc5$ cuando la velocidad es nula. En una instancia de 20
-trabajos medimos unos 11 intercambios por actualización. Si el enjambre ya explora tanto, la
-mutación adicional resta evaluaciones a la intensificación. La Figura~\ref{fig:res}a muestra que
-la pérdida es pequeña y que cada variante gana en algunas instancias.
+muestra el mismo patrón: en la segunda mitad del presupuesto, A1 queda bajo las demás variantes
+en ambos grupos de tamaño. Las curvas siguen bajando al agotarse el presupuesto, por lo que
+ninguna variante parece haber convergido. Una explicación posible está en la propia dPSO. Su
+actualización intercambia cada posición con probabilidad $1/(1+e^{-v})$, que vale $0\dc5$ cuando
+la velocidad es nula. En una instancia de 20 trabajos medimos, en promedio, 11,5 intercambios por
+actualización. Si el enjambre ya cambia tanto sus posiciones, una perturbación adicional
+probablemente las aleja más de las mejores soluciones conocidas. No comprobamos este mecanismo
+de forma directa. La Figura~\ref{fig:res}a muestra que la pérdida es pequeña y que cada variante
+gana en algunas instancias.
 
 \begin{figure}[htb]
 \centering
@@ -505,16 +511,18 @@ coinciden.}
 Aprender la intensidad no aporta. A5 queda un 0,13~\% por encima de A2 y pierde en 14 de 25
 instancias ($p=0\dc71$). Frente a la elección aleatoria (A3) y al control por reglas (A4), las
 diferencias no superan el 0,9~\%. A4 es la peor variante (rango 4,80). Interpreta la falta de
-mejora como una señal para subir la intensidad, y desde el tercio medio de la corrida usa
-$p=0\dc30$ en el 95~\% de los bloques. La causa del resultado de A5 está en la señal de
-recompensa. En todas las variantes, el 92~\% de los bloques termina sin mejora y entrega
-recompensa nula. Además, en A3, que elige $p$ al azar, las tres intensidades producen casi la
-misma recompensa media por bloque: $3\dc12$, $3\dc25$ y $3\dc05\times10^{-3}$ para $p=0\dc05$,
-$0\dc15$ y $0\dc30$, y la misma proporción de bloques con mejora (Figura~\ref{fig:res}b). O sea,
-no existe una intensidad mejor que aprender. El bandido se fija en
-una intensidad dentro de cada corrida y la usa en el 75~\% de los bloques. Sin embargo, cuál
-elige es casi azar: cada valor domina en un 32 a 34~\% de las corridas. En la práctica, A5 se
-comporta como A3.
+mejora como una señal para subir la intensidad. Desde el tercio medio de la corrida, usa
+$p=0\dc30$ en el 95~\% o más de los bloques. Para A5, el diagnóstico apunta a la señal de
+recompensa. En todas las variantes, el 92~\% de los bloques termina sin mejorar la mejor
+solución, es decir, con recompensa nula. Además, en A3, que elige $p$ al azar, las tres
+intensidades producen casi la misma recompensa media por bloque: $3\dc12$, $3\dc25$ y
+$3\dc05\times10^{-3}$ para $p=0\dc05$, $0\dc15$ y $0\dc30$. También dan la misma proporción de
+bloques con mejora (Figura~\ref{fig:res}b), y la igualdad se mantiene en cada tercio de la
+corrida. Por tanto, no hay una intensidad mejor que el bandido pueda aprender. Dentro de cada
+corrida, el bandido se fija en una intensidad y la usa en el 75~\% de los bloques. La regla de
+actualización explica esa fijación: la primera intensidad con recompensa positiva conserva
+$Q>0$, mientras las demás siguen en cero. Así ocurre en el 86~\% de las corridas de A5. Por eso,
+cuál intensidad domina es casi azar: cada valor domina en un 32 a 34~\% de las corridas.
 
 \begin{figure}[htb]
 \centering
@@ -531,65 +539,71 @@ de A2 ($p=0\dc47$) y A7, un 0,08~\% por encima de A5 ($p=0\dc34$). A diferencia 
 intensidad, este nivel sí aprende algo. Su señal es más densa, porque cada mutación produce una
 observación. Al final de la corrida, $V(m)$ vale en promedio 0,42 para el intercambio, 0,43
 para la inserción y 0,38 para el cambio de sala. Así, el bandido reduce el uso del cambio de
-sala del 33~\% en A2 al 26~\% en A6 y en A7 (Figura~\ref{fig:res}c). Esa preferencia es consistente, pero la diferencia
-entre movimientos es pequeña y no alcanza a cambiar el resultado.
+sala del 33~\% en A2 al 26~\% en A6 y en A7 (Figura~\ref{fig:res}c). La preferencia aparece en
+el promedio, pero no en cada corrida: $V$ del cambio de sala es el menor de los tres solo en el
+45~\% de las corridas. La diferencia entre movimientos es pequeña y no alcanza a cambiar $f$.
 
 \paragraph{Qué cambia en el calendario.}
-En A1, $\Cmax$ representa en mediana el 62~\% de $f$, frente al 20~\% del término de esperas
-$\beta\sum_j W_j$, el 10~\% de la espera máxima y el 6~\% del balance de salas. La jornada
+En A1, $\Cmax$ representa en mediana el 62~\% de $f$. El término de esperas $\beta\sum_j W_j$
+aporta el 20~\%, la espera máxima el 10~\% y el balance de salas el 6~\%. La jornada
 dura en mediana 284 minutos y la espera máxima es de unos 34 minutos en todas las variantes.
 La mutación eleva la espera total entre un 2 y un 5~\% en A2, A3, A4 y A6, mientras $\Cmax$
 casi no cambia (Tabla~\ref{tab:res}). Por tanto, la pérdida de las variantes con mutación
-proviene sobre todo de las esperas. En el 39~\% de las corridas, al menos un trabajo supera el
-límite de espera de su instancia (1,4 trabajos en promedio). Esa proporción es similar en todas
-las variantes, porque el evaluador no aplica el límite (Sección~\ref{sec:exp}).
+proviene sobre todo de las esperas. En el 39~\% de las corridas, al menos un trabajo supera su
+límite de espera (1,4 trabajos por corrida en promedio). Esto ocurre porque el evaluador no
+aplica el límite (Sección~\ref{sec:exp}). La proporción es similar en todas las variantes (entre
+el 37 y el 40~\%).
 
 \paragraph{Costo, estabilidad y sensibilidad.}
 El control es barato. La mediana del cociente entre el tiempo de cada variante y el de A1, con la
-misma instancia y semilla, va de 0,98 a 1,02. En el clúster, una corrida tardó entre 4,1~s
-(15 trabajos) y 18,7~s (60 trabajos), y la prueba completa tomó 8 minutos. Ninguna variante
-cambia la estabilidad: el rango intercuartílico relativo va del 7,6 al 8,3~\%. Por último, el
-análisis de sensibilidad en desarrollo no muestra dependencia de los parámetros del control. Con
-$L\in\{3,10\}$ y $\epsilon\in\{0\dc05;\,0\dc2\}$, A7 difiere de su configuración base entre
-$-1\dc4$ y $-0\dc6$~\% en mediana, y la prueba de Friedman no detecta diferencias ($p=0\dc68$).
+misma instancia y semilla, va de 0,98 a 1,02. En el clúster, una corrida tardó en mediana entre
+4,1~s (15 trabajos) y 18,7~s (60 trabajos), y la prueba completa tomó 8 minutos. Ninguna
+variante cambia la estabilidad: el rango intercuartílico relativo va del 7,6 al 8,3~\%. Por
+último, el análisis de sensibilidad en desarrollo no detecta una dependencia clara de los
+parámetros del control. Con $L\in\{3,10\}$ y $\epsilon\in\{0\dc05;\,0\dc2\}$, A7 mejora a su
+configuración base entre un 0,6 y un 1,4~\% en mediana. Sin embargo, la prueba de Friedman no
+detecta diferencias ($p=0\dc68$).
 
 \paragraph{Discusión.}
-El diseño suponía dos cosas: que dPSO necesita perturbación adicional y que la intensidad útil
-cambia a lo largo de la búsqueda, como ocurre con los operadores en la selección
-adaptativa~\cite{fialho2010}. Ninguna se cumple aquí, y la ablación lo muestra por separado. A2
-frente a A1 indica que perturbar más no ayuda, y A3 indica que las tres intensidades rinden lo
-mismo. Sin esa separación, la ventaja de A5 sobre A4 (0,88~\%) podría haberse leído como un
-aporte del aprendizaje. En realidad, solo refleja que A4 muta más. Dos hechos agregan una
-advertencia metodológica. Con el evaluador original, la mutación parecía reducir las esperas, y
-la conclusión de P1 se invierte al corregirlo. Además, el piloto en ocho instancias anticipó
-el signo opuesto al de la prueba. Para diseñar controles aprendidos, la implicación práctica es
-verificar primero el evaluador. Luego conviene comprobar, con variantes como A1 y A3, que la
-búsqueda necesita la perturbación y que las opciones producen efectos distinguibles.
+El diseño suponía dos cosas. La primera, que dPSO necesita perturbación adicional. La segunda,
+que la intensidad útil cambia a lo largo de la búsqueda, como ocurre con los operadores en la
+selección adaptativa~\cite{fialho2010}. Ninguna se cumple en estos experimentos, y la ablación permite
+verlo por separado. A2 frente a A1 indica que perturbar más no ayuda. A3 indica que las tres
+intensidades rinden lo mismo en todas las etapas de la corrida. Sin esa separación, la ventaja
+de A5 sobre A4 (0,88~\%) podría haberse leído como un aporte del aprendizaje. Es más probable que
+refleje que A4 muta más: unas 2800 mutaciones por corrida, frente a unas 1600 de A5. Dos hechos
+agregan una advertencia metodológica. En la primera ejecución, con el evaluador y la dPSO
+originales, A2 mejoraba a A1 un 1~\%, sobre todo por menores esperas. Tras las correcciones, el signo
+de P1 se invierte. Además, el piloto en ocho instancias anticipó el signo opuesto al de la
+prueba. De ahí nuestra recomendación práctica: verificar primero el evaluador. Luego conviene
+comprobar, con variantes como A1 y A3, que la búsqueda necesita la perturbación y que las
+opciones producen efectos distinguibles.
 
 \section{Conclusión}
 
 La planificación de cirugías electivas exige coordinar el orden de atención y las salas bajo
-recursos compartidos. La literatura ha aprendido qué operador aplicar en algoritmos evolutivos,
-pero no había estudiado el aprendizaje de la intensidad y del tipo de perturbación en un enjambre
-discreto aplicado a este problema. Propusimos un control en dos niveles para dPSO y lo evaluamos
+recursos compartidos. El control aprendido se ha usado para elegir operadores en algoritmos
+evolutivos. Sin embargo, en la bibliografía revisada no encontramos estudios que aprendan la intensidad y
+el tipo de perturbación de un enjambre discreto en este problema. Propusimos un control en dos niveles para dPSO y lo evaluamos
 con una ablación, el mismo presupuesto y separación entre instancias de desarrollo y de prueba.
 
 Los resultados no muestran diferencias significativas entre las siete variantes, y todas quedan
-a menos de un 1,2~\% de dPSO sin mutación. Añadir mutación empeora levemente la aptitud
+a menos de un 1,2~\% de dPSO sin mutación. Añadir mutación tiende a empeorar la aptitud
 (0,65~\% en mediana), sobre todo porque aumenta las esperas. Aprender la intensidad no aporta,
 porque las tres intensidades producen la misma mejora por bloque. Aprender el movimiento
 identifica que el cambio de sala mejora con menos frecuencia, pero esa diferencia no se traduce
 en mejores soluciones. El control añade un costo de tiempo despreciable. Durante la verificación,
-además, detectamos y corregimos un error del evaluador que inflaba las esperas. El aporte del
-trabajo es, por tanto, un resultado negativo informativo: separa el efecto de perturbar del
-efecto de aprender a perturbar y muestra por qué ninguno de los dos mejora a dPSO aquí.
+además, detectamos y corregimos dos errores: uno del evaluador, que inflaba las esperas, y otro de
+la dPSO. El aporte del trabajo es un resultado negativo con su diagnóstico. La ablación separa el
+efecto de perturbar del de aprender a perturbar. Los registros del control explican por qué el
+aprendizaje no aporta en este problema.
 
 \paragraph{Limitaciones.}
 Las instancias son sintéticas y deterministas, por lo que las conclusiones no se extienden a
 datos hospitalarios ni a duraciones inciertas. El evaluador no aplica el límite de espera de
-cada instancia, y el 39~\% de las corridas lo supera en algún trabajo. El presupuesto de
-$10\,000$ evaluaciones no basta para que la búsqueda converja. Solo ocho instancias de
-desarrollo sostuvieron la elección de $p$, y su señal no se mantuvo en la prueba. La recompensa
+cada instancia, y el 39~\% de las corridas lo supera en algún trabajo. Con $10\,000$
+evaluaciones, las curvas de convergencia siguen bajando al final. El piloto usó solo ocho
+instancias, y la ventaja de A2 sobre A1 que mostró allí no se mantuvo en la prueba. La recompensa
 de ambos niveles incluye el efecto del paso de dPSO. Por último, la comparación es interna a
 dPSO, cuya actualización ya es muy aleatoria.
 
@@ -598,10 +612,10 @@ Tres líneas siguen de estos resultados. La primera es aplicar el límite de esp
 instancia, como restricción o penalización, y revisar los pesos de $f$. La segunda es reducir la
 aleatoriedad propia de dPSO o añadirle una búsqueda local, y repetir la ablación sobre esa base.
 El control solo puede aportar si la búsqueda necesita la perturbación que regula. La tercera es
-dar al nivel de intensidad opciones con efectos más distintos y una recompensa más densa, por
-ejemplo por partícula o basada en rangos, como en Li et~al.~\cite{li2014}. En una perspectiva más
-amplia, comprobar con variantes de referencia que las opciones producen efectos distinguibles es
-barato y debería preceder al diseño de cualquier control aprendido.
+dar al nivel de intensidad opciones con efectos más distintos y una recompensa más densa. Esa
+recompensa podría calcularse por partícula o basarse en rangos, como en Li et~al.~\cite{li2014}. Más en general,
+comprobar con variantes de referencia que las opciones producen efectos distinguibles es barato,
+y conviene hacerlo antes de diseñar un control aprendido.
 
 \begin{thebibliography}{99}\small
 \setlength{\itemsep}{2pt}
