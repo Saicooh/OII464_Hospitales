@@ -488,7 +488,8 @@ curvas siguen bajando al agotar el presupuesto, de modo que ninguna variante con
 explicación posible está en la propia dPSO. Su actualización intercambia cada posición con
 probabilidad $1/(1+e^{-v})$, que vale $0\dc5$ cuando la velocidad es nula. En una instancia de 20
 trabajos medimos unos 11 intercambios por actualización. Si el enjambre ya explora tanto, la
-mutación adicional resta evaluaciones a la intensificación.
+mutación adicional resta evaluaciones a la intensificación. La Figura~\ref{fig:res}a muestra que
+la pérdida es pequeña y que cada variante gana en algunas instancias.
 
 \begin{figure}[htb]
 \centering
@@ -509,10 +510,20 @@ $p=0\dc30$ en el 95~\% de los bloques. La causa del resultado de A5 está en la 
 recompensa. En todas las variantes, el 92~\% de los bloques termina sin mejora y entrega
 recompensa nula. Además, en A3, que elige $p$ al azar, las tres intensidades producen casi la
 misma recompensa media por bloque: $3\dc12$, $3\dc25$ y $3\dc05\times10^{-3}$ para $p=0\dc05$,
-$0\dc15$ y $0\dc30$. O sea, no existe una intensidad mejor que aprender. El bandido se fija en
+$0\dc15$ y $0\dc30$, y la misma proporción de bloques con mejora (Figura~\ref{fig:res}b). O sea,
+no existe una intensidad mejor que aprender. El bandido se fija en
 una intensidad dentro de cada corrida y la usa en el 75~\% de los bloques. Sin embargo, cuál
 elige es casi azar: cada valor domina en un 32 a 34~\% de las corridas. En la práctica, A5 se
 comporta como A3.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\linewidth]{figuras/resumen.pdf}
+\caption{(a) Diferencia relativa de la aptitud mediana de cada variante frente a A1; cada punto
+es una instancia de prueba y la barra, la mediana. (b) Bloques de A3 que mejoran la mejor
+solución, según la intensidad elegida al azar. (c) Proporción de mutaciones que cambian la sala.}
+\label{fig:res}
+\end{figure}
 
 \paragraph{P3: aprender el movimiento.}
 Aprender el movimiento tampoco cambia $f$ de forma apreciable. A6 queda un 0,28~\% por encima
@@ -520,7 +531,7 @@ de A2 ($p=0\dc47$) y A7, un 0,08~\% por encima de A5 ($p=0\dc34$). A diferencia 
 intensidad, este nivel sí aprende algo. Su señal es más densa, porque cada mutación produce una
 observación. Al final de la corrida, $V(m)$ vale en promedio 0,42 para el intercambio, 0,43
 para la inserción y 0,38 para el cambio de sala. Así, el bandido reduce el uso del cambio de
-sala del 33~\% en A2 al 26~\% en A6 y en A7. Esa preferencia es consistente, pero la diferencia
+sala del 33~\% en A2 al 26~\% en A6 y en A7 (Figura~\ref{fig:res}c). Esa preferencia es consistente, pero la diferencia
 entre movimientos es pequeña y no alcanza a cambiar el resultado.
 
 \paragraph{Qué cambia en el calendario.}
