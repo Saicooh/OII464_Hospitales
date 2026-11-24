@@ -1,0 +1,750 @@
+%==============================================================
+%  Presentación: dPSO con control aprendido de la perturbación
+%  Base: segundo informe de OII464 (informe/informe_2_hibrido.tex)
+%  Estilo: mismo tema Beamer de la presentación del optativo
+%==============================================================
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noshorthands,es-nodecimaldot]{babel}
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{tikz}
+\usepackage{appendixnumberbeamer}
+\usetikzlibrary{shapes,arrows,positioning,calc,fit,patterns,backgrounds}
+
+%--------------------------------------------------------------
+%  Paleta moderna y de alto contraste
+%--------------------------------------------------------------
+\definecolor{primary}{RGB}{15,76,110}    % azul-petróleo profundo
+\definecolor{accent}{RGB}{224,122,40}     % ámbar (énfasis)
+\definecolor{best}{RGB}{0,128,64}         % verde (éxito / óptimo)
+\definecolor{warn}{RGB}{183,65,14}        % naranja quemado
+\definecolor{inkgray}{RGB}{55,55,60}
+\definecolor{lightbg}{RGB}{236,242,246}
+
+\definecolor{anestcolor}{RGB}{41,128,185}
+\definecolor{surgcolor}{RGB}{39,174,96}
+\definecolor{cleancolor}{RGB}{149,165,166}
+
+%--------------------------------------------------------------
+%  Tema base restilizado
+%--------------------------------------------------------------
+\usetheme{default}
+\useinnertheme{circles}
+
+\setbeamercolor{normal text}{fg=inkgray}
+\setbeamercolor{structure}{fg=primary}
+\setbeamercolor{title}{fg=primary}
+\setbeamercolor{frametitle}{fg=white,bg=primary}
+\setbeamercolor{block title}{fg=white,bg=primary}
+\setbeamercolor{block body}{bg=lightbg}
+\setbeamercolor{block title alerted}{fg=white,bg=warn}
+\setbeamercolor{block body alerted}{bg=warn!8}
+\setbeamercolor{block title example}{fg=white,bg=best}
+\setbeamercolor{block body example}{bg=best!8}
+\setbeamercolor{itemize item}{fg=accent}
+\setbeamercolor{itemize subitem}{fg=accent}
+\setbeamercolor{section in toc}{fg=primary}
+\setbeamercolor{author in head/foot}{fg=white,bg=primary!85}
+
+\setbeamerfont{frametitle}{series=\bfseries,size=\large}
+\setbeamerfont{title}{series=\bfseries,size=\LARGE}
+\setbeamerfont{footline}{size=\scriptsize}
+
+\setbeamertemplate{blocks}[rounded][shadow=false]
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}[circle]
+
+% Banda de título full-width
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip
+  \begin{beamercolorbox}[wd=\paperwidth,ht=3.0ex,dp=1.2ex,leftskip=0.35cm,rightskip=0.35cm]{frametitle}%
+    \usebeamerfont{frametitle}\insertframetitle%
+  \end{beamercolorbox}%
+}
+
+% Footline con contexto + número de slide
+\setbeamertemplate{footline}{%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.72\paperwidth,ht=2.4ex,dp=1.1ex,leftskip=0.35cm]{author in head/foot}%
+      \usebeamerfont{footline}Planificación quirúrgica con dPSO \; \textperiodcentered{} \; Control aprendido de la perturbación%
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.28\paperwidth,ht=2.4ex,dp=1.1ex,rightskip=0.35cm]{author in head/foot}%
+      \usebeamerfont{footline}\hfill\insertframenumber\,/\,\inserttotalframenumber%
+    \end{beamercolorbox}%
+  }%
+}
+
+% Separador de sección
+\AtBeginSection[]{%
+  \begin{frame}[plain]
+    \centering
+    \vfill
+    {\color{accent}\bfseries\large Parte \insertsectionnumber}\\[0.5em]
+    {\usebeamerfont{title}\color{primary}\insertsectionhead}\\[0.6em]
+    {\color{accent}\rule{4.2cm}{2.2pt}}
+    \vfill
+  \end{frame}
+}
+
+% Celda de permutación para los diagramas de movimientos
+\newcommand{\pcell}[4]{\node[draw=primary, fill=#4, minimum size=0.44cm, inner sep=0pt, font=\scriptsize] at (#1,#2) {#3};}
+
+\newcommand{\best}[1]{\textcolor{best}{\textbf{#1}}}
+\newcommand{\risk}[1]{\textcolor{warn}{\textbf{#1}}}
+\newcommand{\destacado}[1]{\textcolor{primary}{\textbf{#1}}}
+\newcommand{\Cmax}{C_{\text{máx}}}
+\newcommand{\dc}{{,}}% coma decimal en modo matemático
+
+%--------------------------------------------------------------
+%  Información del documento
+%--------------------------------------------------------------
+\title[dPSO con control aprendido]{Planificación quirúrgica con dPSO\\[2pt]
+  {\Large y control aprendido de la perturbación en dos niveles}}
+\author[José Lara Arce]{José Lara Arce}
+\institute[]{OII464: Desarrollo de Diseños Híbridos para Optimización \;\textperiodcentered{}\; Profesor Emanuel Vega\\[2pt]
+  Escuela de Ingeniería Informática\\Pontificia Universidad Católica de Valparaíso}
+\date{Noviembre 2026}
+
+\begin{document}
+
+%--------------------------------------------------------------
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Punto de partida: tres vacíos y cómo los abordamos}
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \begin{alertblock}{Lo que no encontramos}
+        \footnotesize
+        \begin{enumerate}
+          \item Bandidos multibrazo aplicados a la \textbf{intensidad} de la perturbación, no solo a elegir operadores.
+          \item Control con \textbf{retroalimentación de la búsqueda} en un enjambre \textbf{discreto}.
+          \item Una evaluación en \textbf{programación quirúrgica} que separe \emph{añadir} perturbación de \emph{aprender} a elegirla.
+        \end{enumerate}
+      \end{alertblock}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      \begin{exampleblock}{Lo que aportamos}
+        \footnotesize
+        \begin{enumerate}
+          \item \textbf{Control en dos niveles:} probabilidad de mutación por bloques y movimiento en cada mutación.
+          \item \textbf{Recompensa propia de cada nivel:} agregada para la intensidad, individual para el movimiento.
+          \item \textbf{Ablación con igual presupuesto} que aísla el aporte de cada nivel.
+        \end{enumerate}
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.25cm}
+  {\footnotesize \destacado{Bandido multibrazo:} aprende, con recompensas, cuál de unas pocas opciones conviene elegir.}
+
+  \vspace{0.05cm}
+  \begin{block}{Objetivo del trabajo}
+    \small
+    Añadir a dPSO un control que \best{aprende durante la ejecución} \textbf{cuánto} y \textbf{cómo} perturbar.
+  \end{block}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Arquitectura híbrida: dPSO + dos bandidos multibrazo}
+  \centering
+  \begin{tikzpicture}[>=latex, font=\scriptsize]
+    \tikzstyle{box} = [draw=primary, fill=lightbg, rounded corners=4pt, text width=3.3cm, align=center, line width=0.8pt, inner sep=5pt, minimum height=1.15cm]
+    \tikzstyle{highlight} = [draw=accent, fill=accent!10, rounded corners=4pt, text width=3.3cm, align=center, line width=1pt, inner sep=5pt, minimum height=1.15cm]
+    \tikzstyle{arrow} = [->, thick, color=primary]
+    \tikzstyle{feed} = [->, thick, dashed, color=accent]
+
+    \node[highlight] (int) at (0, 1.05) {\textbf{Nivel de intensidad}\\aprende $Q(p)$, elige $p$\\cada $L$ iteraciones};
+    \node[highlight] (mov) at (0,-1.05) {\textbf{Nivel de movimiento}\\aprende $V(m)$, elige $m$\\en cada mutación};
+    \node[box, text width=2.9cm, minimum height=1.5cm] (pso) at (5.1, 0) {\textbf{dPSO + mutación}\\partículas $(\pi,\rho)$};
+    \node[box, text width=2.9cm, minimum height=1.5cm] (ev)  at (10.3, 0) {\textbf{Evaluador común}\\aptitud y calendario};
+
+    \draw[arrow] (int.east) -- node[above, sloped] {$p$} ([yshift=3mm]pso.west);
+    \draw[arrow] (mov.east) -- node[below, sloped] {$m$} ([yshift=-3mm]pso.west);
+    \draw[arrow] ([yshift=2mm]pso.east) -- node[above] {candidato $x$} ([yshift=2mm]ev.west);
+    \draw[arrow] ([yshift=-2mm]ev.west) -- node[below] {aptitud} ([yshift=-2mm]pso.east);
+
+    \draw[feed] (pso.north) -- ++(0,1.2) -| node[pos=0.25, above, text=warn] {recompensa: mejora del bloque} (int.north);
+    \draw[feed] (pso.south) -- ++(0,-1.2) -| node[pos=0.25, below, text=warn] {recompensa: mejora de la partícula} (mov.south);
+  \end{tikzpicture}
+
+  \vspace{0.1cm}
+  \footnotesize
+  \begin{itemize}
+    \item \destacado{Bandido multibrazo:} aprendizaje por recompensas. Elige una y otra vez entre pocas opciones, estima el valor de cada una con la recompensa que recibe y favorece la que mejor ha resultado.
+    \item \textbf{Partícula $(\pi,\rho)$:} $\pi$ es el orden de prioridad de los trabajos y $\rho$ la sala de cada operación.
+    \item \textbf{Aptitud $f$:} fin de jornada $\Cmax$, más esperas entre anestesia y cirugía, más balance de salas (se minimiza).
+  \end{itemize}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Nivel 1: intensidad (\textquestiondown{}cuánto perturbar?)}
+  \begin{columns}[t]
+    \begin{column}{0.44\textwidth}
+      \begin{block}{Acciones y política}
+        \small
+        \begin{itemize}
+          \item $\mathcal{P}=\{0\dc05;\;0\dc15;\;0\dc30\}$.
+          \item Se elige $p_t$ al inicio de cada bloque de $L=5$ iteraciones.
+          \item Arranque: las tres acciones se prueban una vez, en orden aleatorio.
+          \item Después, \textbf{épsilon-voraz} con $\epsilon=0\dc1$.
+        \end{itemize}
+      \end{block}
+    \end{column}
+
+    \begin{column}{0.54\textwidth}
+      \begin{block}{Recompensa agregada del bloque}
+        \small
+        Con $g_t$ y $g_{t+1}$ las mejores aptitudes antes y después:
+        \begin{equation*}
+          r_t = \min\Bigl\{1,\; \max\Bigl\{0,\; \frac{g_t-g_{t+1}}{\max\{1,|g_t|\}}\Bigr\}\Bigr\}
+        \end{equation*}
+        \begin{equation*}
+          Q_{t+1}(p_t) = Q_t(p_t) + \eta\,\bigl(r_t - Q_t(p_t)\bigr), \quad \eta=0\dc2
+        \end{equation*}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.15cm}
+  \begin{exampleblock}{Ejemplo}
+    \small
+    Si la mejor aptitud baja de 1000 a 980, $r_t=0\dc02$ y un valor $Q_t(p_t)=0\dc010$ pasa a $0\dc012$. El paso constante da más peso a lo reciente: la utilidad de cada intensidad cambia durante la búsqueda.
+  \end{exampleblock}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Nivel 2: movimiento (\textquestiondown{}cómo perturbar?)}
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Tres movimientos}
+        \centering
+        \begin{tikzpicture}[x=0.44cm, y=1cm, >=latex]
+          % Intercambio
+          \node[anchor=west, font=\scriptsize\bfseries, text=primary] at (-0.5,0.55) {Intercambio en $\pi$};
+          \foreach \x/\v/\c in {0/3/white, 1/1/accent!40, 2/4/white, 3/2/accent!40, 4/5/white} {\pcell{\x}{0}{\v}{\c}}
+          \draw[->, thick, primary] (5.0,0) -- (6.6,0);
+          \foreach \x/\v/\c in {7.6/3/white, 8.6/2/accent!40, 9.6/4/white, 10.6/1/accent!40, 11.6/5/white} {\pcell{\x}{0}{\v}{\c}}
+          % Inserción
+          \node[anchor=west, font=\scriptsize\bfseries, text=primary] at (-0.5,-0.65) {Inserción en $\pi$};
+          \foreach \x/\v/\c in {0/3/white, 1/1/white, 2/4/white, 3/2/accent!40, 4/5/white} {\pcell{\x}{-1.2}{\v}{\c}}
+          \draw[->, thick, primary] (5.0,-1.2) -- (6.6,-1.2);
+          \foreach \x/\v/\c in {7.6/2/accent!40, 8.6/3/white, 9.6/1/white, 10.6/4/white, 11.6/5/white} {\pcell{\x}{-1.2}{\v}{\c}}
+          % Sala
+          \node[anchor=west, font=\scriptsize\bfseries, text=primary] at (-0.5,-1.85) {Reasignación de sala en $\rho$};
+          \node[draw=primary, fill=white, rounded corners=2pt, font=\scriptsize, minimum height=0.44cm, minimum width=2.2cm] at (2,-2.4) {$\rho_{jk}=$ Sala 2};
+          \draw[->, thick, primary] (5.0,-2.4) -- (6.6,-2.4);
+          \node[draw=primary, fill=accent!40, rounded corners=2pt, font=\scriptsize, minimum height=0.44cm, minimum width=2.2cm] at (9.6,-2.4) {$\rho_{jk}=$ Sala 5};
+        \end{tikzpicture}
+
+        \vspace{0.1cm}
+        \raggedright\footnotesize
+        Los tres preservan la permutación y la elegibilidad de salas.
+      \end{block}
+    \end{column}
+
+    \begin{column}{0.50\textwidth}
+      \begin{block}{Recompensa individual y binaria}
+        \small
+        Tras evaluar la partícula $i$ mutada con $m$:
+        \begin{equation*}
+          u_i = \begin{cases} 1 & \text{si } f(x_i^{\text{nueva}}) < f(x_i^{\text{anterior}}) \\ 0 & \text{en otro caso} \end{cases}
+        \end{equation*}
+        \begin{equation*}
+          V(m) \leftarrow V(m) + \eta_m\bigl(u_i - V(m)\bigr), \quad \eta_m=0\dc05
+        \end{equation*}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.2cm}
+  \centering
+  \small
+  $V(m)$ estima la \destacado{frecuencia reciente} con que una partícula mejora al aplicarle $m$. Misma política épsilon-voraz ($\epsilon=0\dc1$); paso menor porque este nivel recibe muchas más observaciones.
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Siete variantes de dPSO para responder tres preguntas}
+  \begin{columns}[c]
+    \begin{column}{0.63\textwidth}
+      \centering
+      \footnotesize
+      \setlength{\tabcolsep}{4pt}
+      \renewcommand{\arraystretch}{1.25}
+      \begin{tabular}{@{}llll@{}}
+        \toprule
+        & \textbf{Intensidad $p$} & \textbf{Movimiento} & \textbf{Papel} \\
+        \midrule
+        A1 & sin mutación & --- & línea base \\
+        A2 & fija ($0\dc30$) & uniforme & mutación sin control \\
+        A3 & aleatoria & uniforme & control sin información \\
+        A4 & reglas & uniforme & reglas, sin aprendizaje \\
+        A5 & \textcolor{accent}{\textbf{aprendida}} & uniforme & solo intensidad \\
+        A6 & fija ($0\dc30$) & \textcolor{accent}{\textbf{aprendido}} & solo movimiento \\
+        \best{A7} & \textcolor{accent}{\textbf{aprendida}} & \textcolor{accent}{\textbf{aprendido}} & \best{propuesta completa} \\
+        \bottomrule
+      \end{tabular}
+    \end{column}
+
+    \begin{column}{0.35\textwidth}
+      \centering
+      {\small\destacado{Diseño $2\times2$}}
+
+      \vspace{0.15cm}
+      \begin{tikzpicture}[x=1.8cm, y=0.95cm, font=\scriptsize, every node/.append style={minimum width=0pt}]
+        \node[text=inkgray, align=center] at (1,2.8) {movimiento\\uniforme};
+        \node[text=inkgray, align=center] at (2,2.8) {movimiento\\aprendido};
+        \node[text=inkgray, align=right, anchor=east] at (0.5,2) {$p$\\fija};
+        \node[text=inkgray, align=right, anchor=east] at (0.5,1) {$p$\\aprend.};
+        \node[draw=primary, fill=lightbg, minimum width=1.75cm, minimum height=0.9cm, font=\small\bfseries, text=primary] at (1,2) {A2};
+        \node[draw=primary, fill=accent!15, minimum width=1.75cm, minimum height=0.9cm, font=\small\bfseries, text=primary] at (2,2) {A6};
+        \node[draw=primary, fill=accent!15, minimum width=1.75cm, minimum height=0.9cm, font=\small\bfseries, text=primary] at (1,1) {A5};
+        \node[draw=best, line width=1pt, fill=best!15, minimum width=1.75cm, minimum height=0.9cm, font=\small\bfseries, text=best] at (2,1) {A7};
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.2cm}
+  \footnotesize
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}lll@{}}
+    \destacado{P1} & \textquestiondown{}Mejora dPSO al añadir la mutación? & A1 vs. A2 \\
+    \destacado{P2} & \textquestiondown{}Aporta aprender la intensidad frente a fijarla, sortearla o usar reglas? & A5 vs. A2, A3 y A4 \\
+    \destacado{P3} & \textquestiondown{}Aporta aprender el movimiento, solo o combinado? & A6 vs. A2;\; A7 vs. A5 \\
+  \end{tabular}
+
+  \vspace{0.15cm}
+  {\scriptsize \textbf{A3:} elige $p$ al azar en cada bloque, sin usar $Q$. \quad \textbf{A4:} baja $p$ un nivel si el bloque mejoró; si no, sube uno.}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Instancias: 37 sintéticas, separadas por uso}
+  \centering
+  \footnotesize
+  \setlength{\tabcolsep}{5pt}
+  \renewcommand{\arraystretch}{1.2}
+  \begin{tabular}{@{}llcl@{}}
+    \toprule
+    \textbf{Conjunto} & \textbf{Instancias} & $\boldsymbol{n}$ & \textbf{Uso} \\
+    \midrule
+    Verificación & didácticas de 3, 5, 8 y 10 trabajos & 4 & comprobar la implementación \\
+    Desarrollo & réplica 01 de STD y 12S, 15 a 30 trabajos & 8 & elegir $p$ fija, piloto de tiempos \\
+    \best{Prueba} & réplicas 02 y 03 de STD y 12S, 15 a 30 trabajos & 16 & comparación final \\
+    & réplicas 01 a 03 de 12S, 40 a 60 trabajos & 9 & comparación final, mayor escala \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{0.1cm}
+  {\scriptsize STD: familia estándar (6 a 9 salas). \quad 12S: familia de doce salas.}
+
+  \vspace{0.35cm}
+  \begin{alertblock}{Separación estricta}
+    \small
+    Las instancias de prueba no se ejecutan hasta cerrar la configuración, y nueve de ellas quedan fuera del rango de tamaños de desarrollo. Todas son sintéticas, con semilla fija y sin datos de pacientes.
+  \end{alertblock}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Protocolo: una comparación justa}
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Igualdad de condiciones}
+        \small
+        \begin{itemize}
+          \item Mismo evaluador y presupuesto: $B=10\,000$ evaluaciones por corrida.
+          \item 30 corridas por instancia, semillas 1 a 30 comunes a todas las variantes.
+          \item Cuatro flujos aleatorios independientes: población, dPSO, mutación y control.
+          \item Misma semilla $\Rightarrow$ mismo enjambre inicial.
+        \end{itemize}
+      \end{block}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Parámetros fijados a priori}
+        \small
+        \begin{itemize}
+          \item dPSO: 30 partículas, $w=0\dc7$, $c_1=c_2=1\dc5$, velocidades en $[-4,4]$.
+          \item Control: $L=5$, $\epsilon=0\dc1$, $\eta=0\dc2$, $\eta_m=0\dc05$.
+          \item \textbf{No se ajustan:} con ocho instancias de desarrollo, calibrar favorecería a las variantes aprendidas.
+          \item \textbf{Única elección con datos:} $p$ fija $=0\dc30$, por un piloto en desarrollo con 20 semillas.
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Medidas y análisis estadístico}
+  \begin{columns}[t]
+    \begin{column}{0.46\textwidth}
+      \begin{block}{Qué registramos}
+        \small
+        \begin{itemize}
+          \item Por corrida: $f$, $\Cmax$, espera total y máxima, tiempo y número de mutaciones.
+          \item Por bloque: acción elegida, recompensa, $Q$ y $V$.
+          \item Resumen por instancia: \textbf{mediana} y rango intercuartílico de 30 corridas.
+        \end{itemize}
+        \vspace{0.05cm}
+        \footnotesize En el piloto, el rango intercuartílico fue en promedio el 17~\% de la mediana.
+      \end{block}
+    \end{column}
+
+    \begin{column}{0.52\textwidth}
+      \begin{block}{Cómo comparamos (unidad: la instancia)}
+        \small
+        \begin{enumerate}
+          \item \textbf{Friedman} sobre los rangos de las medianas en las 25 instancias de prueba.
+          \item Si se rechaza la igualdad: \textbf{Wilcoxon} de A7 contra las otras seis, con corrección de \textbf{Holm} ($5~\%$).
+          \item Segunda familia para los contrastes de P1 a P3 sin A7.
+        \end{enumerate}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.2cm}
+  \centering
+  \small
+  Junto a cada valor $p$: diferencia relativa mediana e instancias ganadas, empatadas y perdidas. Desglose por tamaño (15--30 y 40--60 trabajos) y repetición del análisis para $\Cmax$.
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Conclusiones}
+  \begin{block}{Qué proponemos}
+    \small
+    Un control en dos niveles sobre dPSO que aprende, durante la ejecución, \textbf{cuánto} perturbar (probabilidad de mutación por bloques) y \textbf{cómo} hacerlo (movimiento en cada mutación), con una recompensa adaptada a cada nivel.
+  \end{block}
+
+  \begin{exampleblock}{Qué tenemos hoy}
+    \small
+    \begin{itemize}
+      \item Implementación verificada y piloto en desarrollo completado.
+      \item Protocolo cerrado y ejecutable en menos de una hora: siete variantes, mismo presupuesto, ablación $2\times2$.
+    \end{itemize}
+  \end{exampleblock}
+
+  \begin{alertblock}{Qué falta y qué límites tiene}
+    \small
+    \begin{itemize}
+      \item Los resultados de la comparación final, que se presentarán en la siguiente entrega.
+      \item Instancias sintéticas y deterministas; comparación interna a dPSO; objetivo agregado con pesos fijos.
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}[plain]
+  \centering
+  \vfill
+  {\usebeamerfont{title}\color{primary}Gracias}\\[0.6em]
+  {\color{accent}\rule{4.2cm}{2.2pt}}\\[1.0em]
+  {\large \textquestiondown{}Preguntas?}
+  \vfill
+\end{frame}
+
+%==============================================================
+%  ANEXO: láminas de respaldo para preguntas
+%==============================================================
+\appendix
+
+\begin{frame}[plain]
+  \centering
+  \vfill
+  {\color{accent}\bfseries\large Anexo}\\[0.5em]
+  {\usebeamerfont{title}\color{primary}Láminas de respaldo}\\[0.6em]
+  {\color{accent}\rule{4.2cm}{2.2pt}}
+  \vfill
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{El problema: programar una jornada de cirugías electivas}
+  \begin{block}{\textquestiondown{}Qué se decide?}
+    \small
+    El \textbf{orden de atención} de los trabajos y el \textbf{quirófano} de cada operación. Cada trabajo tiene dos operaciones, anestesia y cirugía, y la jornada es determinista: todos los trabajos se conocen al inicio.
+  \end{block}
+
+  \vspace{0.1cm}
+  \begin{columns}[c]
+    \begin{column}{0.56\textwidth}
+      \centering
+      \begin{tikzpicture}[x=0.05cm, y=0.8cm]
+        \draw[draw=inkgray!25, fill=lightbg!50, rounded corners=6pt] (-6,-1.0) rectangle (132,2.15);
+        \draw[->, thick, inkgray] (0,0) -- (128,0);
+        \node[font=\tiny, text=inkgray, anchor=north east] at (128,-0.05) {tiempo};
+
+        \draw[fill=cleancolor!45, rounded corners=2pt] (2,0.35) rectangle (14,1.15) node[pos=.5, font=\tiny, text=inkgray] {Prep.};
+        \draw[fill=anestcolor!85, rounded corners=2pt] (14,0.35) rectangle (40,1.15) node[pos=.5, font=\tiny\bfseries, text=white] {Anestesia};
+        \draw[fill=warn!25, draw=warn, dashed, rounded corners=2pt] (40,0.35) rectangle (62,1.15) node[pos=.5, font=\tiny\bfseries, text=warn] {Espera};
+        \draw[fill=surgcolor!85, rounded corners=2pt] (62,0.35) rectangle (104,1.15) node[pos=.5, font=\tiny\bfseries, text=white] {Cirugía};
+        \draw[fill=cleancolor!65, rounded corners=2pt] (104,0.35) rectangle (118,1.15) node[pos=.5, font=\tiny, text=inkgray] {Limp.};
+
+        \draw[<->, thick, warn] (40,1.4) -- (62,1.4) node[midway, above, font=\scriptsize\bfseries, text=warn] {$W_j$};
+        \node[font=\tiny, text=inkgray, anchor=north] at (2,-0.05) {$S_{j1}$};
+        \node[font=\tiny, text=inkgray, anchor=north] at (51,-0.05) {$S_{j2}$};
+        \draw[dashed, line width=1pt, primary] (118,0) -- (118,1.55) node[above, font=\scriptsize\bfseries, text=primary] {$\Cmax$};
+      \end{tikzpicture}
+
+    \end{column}
+
+    \begin{column}{0.42\textwidth}
+      \footnotesize
+      \begin{itemize}
+        \item \textbf{Recursos compartidos:} sala y personal elegible deben coincidir.
+        \item \textbf{Espera $W_j$:} un retraso tras la anestesia \risk{retiene recursos} y afecta a toda la jornada.
+        \item \textbf{Tiempos auxiliares:} preparación, transición y limpieza.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.1cm}
+  \begin{exampleblock}{Objetivo del trabajo}
+    \small
+    Añadir a dPSO un control que \best{aprende durante la ejecución} \textbf{cuánto} y \textbf{cómo} perturbar la búsqueda.
+  \end{exampleblock}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Representación del candidato y función de evaluación}
+  \begin{block}{Candidato $x=(\pi,\rho)$}
+    \small
+    $\pi$: permutación de los trabajos (prioridad). \quad $\rho_{jk}\in R_{jk}$: sala de la operación $k$ del trabajo $j$.\\
+    El evaluador recorre los trabajos según $\pi$ y asigna a cada operación el profesional elegible que se libera antes.
+  \end{block}
+
+  \vspace{0.1cm}
+  \begin{exampleblock}{Función compuesta del evaluador del repositorio (se minimiza)}
+    \small
+    $$f(x) = \underbrace{\Cmax}_{\text{Fin de jornada}}
+      + \underbrace{\alpha \sum_{j}\sum_{k} S_{jk}}_{\text{Inicios compactos}}
+      + \underbrace{\beta \sum_{j} W_j + \gamma \max_{j} W_j}_{\text{Esperas anestesia--cirugía}}
+      + \underbrace{\delta\, \Psi}_{\text{Balance de salas}}$$
+    \vspace{-0.25cm}
+    \begin{itemize}
+      \item Pesos del repositorio: $\alpha=10^{-6}$, $\beta=0\dc5$, $\gamma=1\dc4$, $\delta=100$.
+      \item Informamos también $\Cmax$ y las esperas: una baja de $f$ puede deberse solo al balance de salas.
+    \end{itemize}
+  \end{exampleblock}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Dos líneas de literatura que no se han cruzado}
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Programación de quirófanos}
+        \footnotesize
+        \begin{itemize}
+          \item \textbf{Revisiones:} Cardoen et al. (2010), Samudra et al. (2016).
+          \item \textbf{Modelo exacto:} taller multimodo con bloqueo, Pham y Klinkert (2008).
+          \item \textbf{Algoritmo genético:} taller de tres estaciones, Bai et al. (2022).
+          \item \textbf{Simulación + recocido:} Baesler et al. (2015). A esta línea pertenece el repositorio del curso.
+        \end{itemize}
+        \vspace{0.1cm}
+        \risk{Los parámetros de búsqueda se fijan antes de ejecutar.}
+      \end{block}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Control de parámetros}
+        \footnotesize
+        \begin{itemize}
+          \item \textbf{Selección de operadores} en algoritmos evolutivos: persecución adaptativa (Thierens, 2005), bandidos (DaCosta et al., 2008; Fialho et al., 2010; Li et al., 2014).
+          \item \textbf{En PSO:} reglas difusas (Shi y Eberhart, 2001), programas en el tiempo (Ratnaweera et al., 2004), estados del enjambre (Zhan et al., 2009).
+        \end{itemize}
+        \vspace{0.1cm}
+        \risk{Eligen \emph{qué} operador aplicar, no la \emph{intensidad}; en PSO, reglas fijadas de antemano.}
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Dos niveles, dos señales de recompensa}
+  \centering
+  \footnotesize
+  \setlength{\tabcolsep}{7pt}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    & \textbf{\color{primary}Nivel de intensidad} & \textbf{\color{primary}Nivel de movimiento} \\
+    \midrule
+    Decide & probabilidad de mutación $p$ & tipo de movimiento $m$ \\
+    Alcance & todo el enjambre, un bloque & una sola partícula \\
+    Recompensa & mejora relativa del mejor global & 1 si la partícula mutada mejora; 0 si no \\
+    Paso & $\eta=0\dc2$ & $\eta_m=0\dc05$ \\
+    Por corrida & unas 66 decisiones & del orden de 1500 observaciones \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{0.35cm}
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Integración}
+        \footnotesize
+        \begin{itemize}
+          \item Todo el aprendizaje ocurre \textbf{durante} la corrida.
+          \item $Q$ y $V$ se reinician en cada corrida; no hay transferencia entre instancias.
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Costo}
+        \footnotesize
+        \begin{itemize}
+          \item Seis estimaciones en memoria.
+          \item Una actualización escalar por bloque y otra por mutación.
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Tres preguntas, cada una con sus contrastes}
+  \small
+  \setlength{\tabcolsep}{8pt}
+  \renewcommand{\arraystretch}{1.9}
+  \begin{tabular}{@{}c p{0.60\textwidth} l@{}}
+    \toprule
+    & \textbf{\color{primary}Pregunta} & \textbf{\color{primary}Contraste} \\
+    \midrule
+    \destacado{P1} & \textquestiondown{}Mejora dPSO al añadir la mutación, con independencia de cómo se controle? & A1 vs. A2 \\
+    \destacado{P2} & \textquestiondown{}Aporta aprender la intensidad algo más que una $p$ fija bien elegida, una elección aleatoria o un ajuste por reglas? & A5 vs. A2, A3 y A4 \\
+    \destacado{P3} & \textquestiondown{}Aporta aprender el movimiento, solo o combinado con la intensidad? & A6 vs. A2;\; A7 vs. A5 \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{0.35cm}
+  \begin{exampleblock}{La idea de la ablación}
+    \small
+    Separar el efecto de \textbf{añadir} perturbación (P1) del efecto de \textbf{aprender} a elegirla (P2 y P3), siempre con el mismo evaluador y el mismo presupuesto.
+  \end{exampleblock}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Anatomía de una corrida: $10\,000$ evaluaciones}
+  \centering
+  \begin{tikzpicture}[x=1cm, y=1cm, font=\scriptsize, >=latex]
+    % Barra del presupuesto
+    \draw[fill=cleancolor!45, draw=primary] (0,0) rectangle (1.0,0.8) node[pos=.5, align=center] {inicial\\30};
+    \draw[fill=anestcolor!80, draw=primary] (1.0,0) rectangle (3.4,0.8) node[pos=.5, text=white, font=\scriptsize\bfseries] {Bloque 1};
+    \draw[fill=anestcolor!80, draw=primary] (3.4,0) rectangle (5.8,0.8) node[pos=.5, text=white, font=\scriptsize\bfseries] {Bloque 2};
+    \draw[fill=lightbg, draw=primary] (5.8,0) rectangle (8.2,0.8) node[pos=.5, text=primary, font=\small\bfseries] {$\cdots$};
+    \draw[fill=anestcolor!80, draw=primary] (8.2,0) rectangle (10.6,0.8) node[pos=.5, text=white, font=\scriptsize\bfseries] {Bloque 66};
+    \draw[fill=accent!35, draw=primary] (10.6,0) rectangle (12.0,0.8) node[pos=.5, align=center] {truncado\\70};
+
+    % Detalle del bloque
+    \draw[<->, inkgray] (1.0,-0.25) -- (3.4,-0.25) node[midway, below] {5 iteraciones $\times$ 30 partículas $=150$};
+    \draw[<->, inkgray] (1.0,1.75) -- (10.6,1.75) node[midway, above] {66 bloques completos $=9900$ evaluaciones};
+
+    % Decisiones del control
+    \draw[->, thick, accent] (1.0,1.45) -- (1.0,0.85);
+    \node[text=warn, anchor=west] at (1.05,1.2) {elige $p$};
+    \draw[->, thick, accent] (3.4,1.45) -- (3.4,0.85);
+    \node[text=warn, anchor=west] at (3.45,1.2) {actualiza $Q$, elige $p$};
+    \draw[->, thick, accent] (10.6,1.45) -- (10.6,0.85);
+    \node[text=warn, anchor=west] at (10.65,1.2) {no actualiza $Q$};
+  \end{tikzpicture}
+
+  \vspace{0.3cm}
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \begin{exampleblock}{Tamaño de la prueba final}
+        \small
+        25 instancias $\times$ 7 variantes $\times$ 30 semillas\\
+        $=5250$ corridas y $52\dc5$ millones de evaluaciones.
+      \end{exampleblock}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Entorno}
+        \small
+        Python 3.13 con NumPy 2.4, en CPU: AMD Ryzen 5 9600, 32 GB, 12 procesos en paralelo.
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Piloto en desarrollo y verificación previa}
+  \begin{columns}[t]
+    \begin{column}{0.46\textwidth}
+      \begin{block}{Elección de la $p$ fija (A2 y A6)}
+        \small
+        8 instancias de desarrollo, 20 semillas. Rango promedio de la aptitud mediana:
+
+        \vspace{0.15cm}
+        \centering
+        \begin{tabular}{cc}
+          \toprule
+          $p$ & \textbf{Rango promedio} \\
+          \midrule
+          \best{0,30} & \best{1,50} \\
+          0,15 & 2,13 \\
+          0,05 & 2,38 \\
+          \bottomrule
+        \end{tabular}
+      \end{block}
+
+      \begin{block}{Tiempo por corrida}
+        \small
+        De 2,4 s (15 trabajos) a 4,0 s (30 trabajos), sin diferencias apreciables entre variantes.
+      \end{block}
+    \end{column}
+
+    \begin{column}{0.52\textwidth}
+      \begin{exampleblock}{Verificación de la implementación}
+        \footnotesize
+        \begin{itemize}
+          \item Cada corrida consume exactamente $10\,000$ evaluaciones y es reproducible con su semilla.
+          \item Calendarios sin solapes de sala ni de profesional, con precedencia anestesia--cirugía.
+          \item Las 1440 corridas del piloto fueron factibles.
+        \end{itemize}
+      \end{exampleblock}
+
+      \begin{alertblock}{Hallazgo sobre el evaluador}
+        \footnotesize
+        El límite de espera propio de cada instancia (27 a 53 min) no actúa como restricción: rige una cota global de $10\,000$ min. Las esperas solo se penalizan con $\beta$ y $\gamma$; informaremos la espera máxima.
+      \end{alertblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+%--------------------------------------------------------------
+\begin{frame}{Limitaciones y trabajo futuro}
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \begin{alertblock}{Limitaciones}
+        \small
+        \begin{itemize}
+          \item \textbf{Instancias sintéticas y deterministas:} no se extiende a datos hospitalarios ni a duraciones inciertas.
+          \item \textbf{Comparación interna a dPSO:} mide el aporte del control, no la posición frente a otras metaheurísticas.
+          \item \textbf{Objetivo agregado:} cinco términos con pesos fijos; el balance de salas pesa mucho.
+        \end{itemize}
+      \end{alertblock}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Trabajo futuro}
+        \small
+        \begin{itemize}
+          \item \textbf{Inmediato:} ejecutar la prueba final y analizar calidad y estabilidad.
+          \item \textbf{Contexto} para el control, p. ej. una medida del estancamiento del enjambre.
+          \item \textbf{Comparación} con las otras metaheurísticas del repositorio, mismo presupuesto.
+          \item \textbf{Duraciones inciertas.}
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\end{document}
