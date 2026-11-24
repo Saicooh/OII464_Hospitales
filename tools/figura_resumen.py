@@ -2,7 +2,7 @@
 
 Uso (desde la raíz del repositorio):
 
-    python tools/figura_resumen.py --runs results/final --out informe/figuras/resumen.pdf
+    python tools/figura_resumen.py --runs results/final --out docs/informes/figuras/resumen.pdf
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ def _style(ax) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--runs", default="results/final")
-    parser.add_argument("--out", default="informe/figuras/resumen.pdf")
+    parser.add_argument("--out", default="docs/informes/figuras/resumen.pdf")
     args = parser.parse_args()
     source, out = Path(args.runs), Path(args.out)
 
